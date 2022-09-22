@@ -453,11 +453,34 @@ class Handler(with_metaclass(HandlerMeta, object)):
     def url(self):
         "return an image link for existing/new output image-file"
         # pf.Image is an Inline element. Callers usually wrap it in a pf.Para
-        return pf.Image(
-            [self.id_, self.classes, self.keyvals],
-            self.caption,
-            [self.outfile, self.typef],
-        )
+        # When {im_fmt} is 'tex' and pandoc fmt is 'latex'
+        # return a pf.RawInline('latex') instead
+        if self.im_fmt == "tex" and self.fmt == "latex":
+            label = ""
+            latex = lambda s: pf.RawInline("latex", s)
+            if len(self.keyvals) > 0:
+                for i, el in enumerate(self.keyvals[0]):
+                    if el == "label":
+                        label = self.keyvals[0][i + 1]
+                        break
+            return latex(
+                "\\begin{figure} "
+                + "\\centering "
+                + "\\input{%s} " % self.outfile[:-4]
+                + (
+                    "\\caption{%s} " % self.caption[0]["c"]
+                    if len(self.caption) > 0
+                    else ""
+                )
+                + ("\\label{%s} " % label if label != "" else "")
+                + "\\end{figure}"
+            )
+        else:
+            return pf.Image(
+                [self.id_, self.classes, self.keyvals],
+                self.caption,
+                [self.outfile, self.typef],
+            )
 
     def anon_codeblock(self):
         "reproduce the original CodeBlock inside an anonymous CodeBlock"
@@ -750,6 +773,10 @@ class GnuPlot(Handler):
     notes:
     - graphic data is printed to stdout
     - so 'stdout' in im_out option is silently ignored
+    - exception, imagine adds the following lines to the top of the script
+       set terminal {im_fmt}
+       set output {outfile}
+      only when {im_fmt} == 'tex'
     """
 
     cmdmap = {"gnuplot": "gnuplot"}
@@ -759,6 +786,9 @@ class GnuPlot(Handler):
         # stdout captures the graphic image
         self.im_out = [x for x in self.im_out if x not in ["stdout"]]
         args = self.im_opt + [self.inpfile]
+        if self.im_fmt == "tex":
+            self.code = "%s%s" % ("set output '%s'\n" % self.outfile, self.code)
+        self.write("w", self.code, self.inpfile)
         if self.cmd(self.im_prg, *args):
             if self.stdout:
                 self.write("wb", self.stdout, self.outfile)
