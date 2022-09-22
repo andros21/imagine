@@ -68,8 +68,8 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
-        'pandocfilters>=1.4',
-        'six>=1.10.0'
+        'pandocfilters==1.5.0',
+        'six==1.16.0'
         ],
 
 
