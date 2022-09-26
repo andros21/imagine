@@ -1123,6 +1123,41 @@ class SheBang(Handler):
             return self.result()
 
 
+class Matplotlib(Handler):
+    """
+    sudo apt-get install python3-matplotlib
+    https://matplotlib.org
+    Note:
+     - Imagine adds the following lines to the top of the script:
+        import sys
+        import numpy as np
+        import matplotlib.pyplot as plt
+       to import standard library needed for a matplotlib plot
+     - Imagine adds the following lines to the bottom of the script:
+        fig.savefig(sys.argv[-1], transparent=True)
+       to save result with trasparent background
+    """
+
+    cmdmap = {"matplotlib": "python3"}
+
+    def image(self):
+        "<fname>.matplotlib {im_opt} <fname>.{im_fmt}"
+        # os.chmod(self.inpfile, stat.S_IEXEC | os.stat(self.inpfile).st_mode)
+        args = self.im_opt + [self.inpfile, self.outfile]
+        self.code = "%s\n\n%s\n\n%s\n" % (
+            (
+                "import sys\n"
+                + "import numpy as np\n"
+                + "import matplotlib.pyplot as plt"
+            ),
+            self.code,
+            "fig.savefig(sys.argv[-1], transparent=True)",
+        )
+        self.write("w", self.code, self.inpfile)
+        if self.cmd(self.im_prg, *args):
+            return self.result()
+
+
 # use sys.modules[__name__].__doc__ instead of __doc__ directly
 # to avoid pylint'rs complaints.
 sys.modules[__name__].__doc__ %= {
