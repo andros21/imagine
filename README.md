@@ -24,9 +24,9 @@ Imagine is a pandoc filter that will turn codeblocks tagged with certain
 classes into images or ascii art. The following are currently supported:
 
     actdiag, asy, asymptote, blockdiag, boxes, circo, ctioga2, ditaa, dot, fdp,
-    figlet, flydraw, gle, gnuplot, graph, graphviz, gri, imagine, mermaid, mscgen,
-    neato, nwdiag, octave, packetdiag, pic, pic2plot, plantuml, plot, ploticus,
-    protocol, pyxplot, rackdiag, seqdiag, sfdp, shebang, twopi
+    figlet, flydraw, gle, gnuplot, graph, graphviz, gri, imagine, matplotlib,
+    mermaid, mscgen, neato, nwdiag, octave, packetdiag, pic, pic2plot, plantuml,
+    plot, ploticus, protocol, pyxplot, rackdiag, seqdiag, sfdp, shebang, twopi
 
 ## Examples
 
@@ -103,6 +103,22 @@ classes into images or ascii art. The following are currently supported:
     xy_chart.render_to_png(sys.argv[-1])
     ```
 
+### [Matplotlib](https://matplotlib.org) using `python3-matplotlib`
+
+![](https://raw.githubusercontent.com/andros21/imagine/master/pd-images/696609ec52b06244f4b2db3687d86c4a5ef47035.png)
+
+    ```{.matplotlib im_fmt="png" im_out="img,fcb"}
+    x = np.linspace(-20, 20, 500)
+    V = np.sin(x)/x
+
+    fig, ax = plt.subplots()
+    ax.plot(x, V, 'r', label="$sinc(x)$")
+
+    ax.set_xlabel('$x$')
+    ax.set_ylabel('$y$')
+    ax.legend()
+    ```
+
 ### [boxes](http://boxes.thomasjensen.com)
 
     /*       _\|/_
@@ -131,9 +147,9 @@ also includes formats other than `png`.
 
         actdiag, asy, asymptote, blockdiag, boxes, circo, ctioga2, ditaa, dot,
         fdp, figlet, flydraw, gle, gnuplot, graph, graphviz, gri, imagine,
-        mermaid, mscgen, neato, nwdiag, octave, packetdiag, pic, pic2plot,
-        plantuml, plot, ploticus, protocol, pyxplot, rackdiag, seqdiag, sfdp,
-        shebang, twopi
+        matplotlib, mermaid, mscgen, neato, nwdiag, octave, packetdiag, pic,
+        pic2plot, plantuml, plot, ploticus, protocol, pyxplot, rackdiag,
+        seqdiag, sfdp, shebang, twopi
 
 
     Installation
@@ -544,5 +560,14 @@ SheBang
     Runs <fname>.shebang {im_opt} <fname>.{im_fmt}
     Wraps:
     -  'shebang' -> shebang
+
+Matplotlib
+
+    sudo apt-get install matplotlib
+    https://matplotlib.org
+
+    Runs python3 <fname>.matplotlib {im_opt} <fname>.{im_fmt}
+    Wraps:
+    -  'matplotlib' -> python3
 
 ```
