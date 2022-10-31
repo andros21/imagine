@@ -174,16 +174,15 @@ Thanks for feedback:
 from __future__ import print_function
 
 import os
-import sys
 import stat
+import sys
+from subprocess import PIPE, CalledProcessError, Popen
 from textwrap import wrap
-from subprocess import Popen, CalledProcessError, PIPE
-
-# non-standard libraries
-from six import with_metaclass
 
 # -https://github.com/jgm/pandocfilters
 import pandocfilters as pf
+# non-standard libraries
+from six import with_metaclass
 
 # Author: Pieter den Hertog
 # Email: git.hertogp@gmail.com
