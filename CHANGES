@@ -1,3 +1,7 @@
+# 0.2.0 - andros21
+- new `im_fmt==tex` in `gnuplot` that include(input) the image as latex code
+- new plot tool `matplotlib`
+- reformat python source code (using `black` and `isort`)
 
 # 0.1.7 - hertogp
 - new `im_merge` option for a `Div` element
