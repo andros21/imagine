@@ -16,6 +16,9 @@ TEMPLATE = r"""
 \begin{{minted}}[{options}]{{{lang}}}
 {cont}
 \end{{minted}}
+{caption}
+{label}
+\end{{listing}}
 """.strip()
 
 
@@ -30,12 +33,10 @@ def join_options(opts):
 def process_atts(kws):
     """Preprocess the attributes provided by pandoc - they come as a list of
     2-lists, convert to a list of strings"""
-    atts = {"caption": None, "label": None, "minted": []}
+    atts = {"caption": "", "label": "", "minted": []}
     for ll, rr in kws:
-        if ll.lower() == "caption":
-            atts["caption"] = rr
-        elif ll.lower() == "label":
-            atts["label"] = rr
+        if ll.lower() == "caption" or ll.lower() == "label":
+            atts["%s" % ll] = "\\%s{%s}" % (ll, rr)
         else:
             atts["minted"].append("%s=%s" % (ll, rr))
     return atts
@@ -56,14 +57,9 @@ def main():
                             lang=language,
                             options=join_options(pos + atts["minted"]),
                             cont=contents,
+                            caption=atts["caption"],
+                            label=atts["label"],
                         )
-                        + (
-                            f"\n\\caption{{{atts['caption']}}}"
-                            if atts["caption"]
-                            else ""
-                        )
-                        + (f"\n\\label{{{atts['label']}}}" if atts["label"] else "")
-                        + ("\n\\end{listing}\n")
                     )
                 ]
 
