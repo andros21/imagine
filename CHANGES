@@ -1,3 +1,10 @@
+# 0.3.0 - andros21
+- add `pandoc_minted.py` script to parse minted code blocks
+  and generate correct tex to include
+- improve condition logic for caption and label attributes
+- `im_fmt==tex` available in `matplotlib` that include(input) the image as latex code
+  using 'pgf' backend matplotlib to generate pgfplots
+
 # 0.2.0 - andros21
 - new `im_fmt==tex` in `gnuplot` that include(input) the image as latex code
 - new plot tool `matplotlib`

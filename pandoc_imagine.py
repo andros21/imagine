@@ -203,7 +203,7 @@ from six import with_metaclass
 # - https://github.com/hertogp/imagine/issues/16
 # - See https://lierdakil.github.io/pandoc-crossref/#subfigure-grid
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 
 # -- helpers
