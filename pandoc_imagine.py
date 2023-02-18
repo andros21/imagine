@@ -205,6 +205,7 @@ from six import with_metaclass
 
 __version__ = "0.2.0"
 
+
 # -- helpers
 def to_str(s, enc="ascii"):
     "return encoded byte stream for s. PY2->str, PY3->bytes"
@@ -1134,7 +1135,10 @@ class Matplotlib(Handler):
        to import standard library needed for a matplotlib plot
      - Imagine adds the following lines to the bottom of the script:
         fig.savefig(sys.argv[-1], transparent=True)
-       to save result with trasparent background
+       to save result with trasparent background with graphic format
+     - Imagine adds the following lines to the bottom of the script:
+        fig.savefig(sys.argv[-1], format='pgf', backend='pgf')
+       to save result with trasparent background with tex format
     """
 
     cmdmap = {"matplotlib": "python3"}
@@ -1150,7 +1154,9 @@ class Matplotlib(Handler):
                 + "import matplotlib.pyplot as plt"
             ),
             self.code,
-            "fig.savefig(sys.argv[-1], transparent=True)",
+            "fig.savefig(sys.argv[-1], transparent=True)"
+            if self.im_fmt != "tex"
+            else "fig.savefig(sys.argv[-1], format='pgf', backend='pgf')",
         )
         self.write("w", self.code, self.inpfile)
         if self.cmd(self.im_prg, *args):
@@ -1163,9 +1169,9 @@ sys.modules[__name__].__doc__ %= {
     "cmds": "\n    ".join(wrap(", ".join(sorted(Handler.workers.keys()))))
 }
 
+
 # Inline-helper
 def mergeImages(rv, elms):
-
     # ensure elms is/becomes a list
     if type(elms) != list:
         elms = [elms]
