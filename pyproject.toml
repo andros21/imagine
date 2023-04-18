@@ -11,6 +11,7 @@ authors = [
 ]
 description = "A filter to process codeblocks into images or ascii art"
 readme = "README.md"
+license = { file = "LICENSE" }
 keywords = ["pandoc", "filter", "codeblock", "image", "ascii-art"]
 requires-python = ">=3.9"
 classifiers = [
