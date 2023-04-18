@@ -181,6 +181,7 @@ from textwrap import wrap
 
 # -https://github.com/jgm/pandocfilters
 import pandocfilters as pf
+
 # non-standard libraries
 from six import with_metaclass
 
@@ -457,7 +458,10 @@ class Handler(with_metaclass(HandlerMeta, object)):
         # return a pf.RawInline('latex') instead
         if self.im_fmt == "tex" and self.fmt == "latex":
             label = ""
-            latex = lambda s: pf.RawInline("latex", s)
+
+            def latex(s):
+                pf.RawInline("latex", s)
+
             if len(self.keyvals) > 0:
                 for i, el in enumerate(self.keyvals[0]):
                     if el == "label":
@@ -1187,7 +1191,7 @@ def mergeImages(rv, elms):
         images = rv[-1]["c"]
         if any(x["t"] != "Image" for x in images):
             return elms
-    except:
+    except Exception:
         return elms
 
     residue = []
@@ -1198,7 +1202,7 @@ def mergeImages(rv, elms):
                     images.append(img)
                 else:
                     residue.append(elm)
-        except:
+        except Exception:
             residue.append(elm)
 
     return residue
@@ -1217,7 +1221,7 @@ def main():
         elif key == "Div":
             # Process Div & try to merge its (subsequent) Image's
             [[ident, classes, kvs], blocks] = value
-            if not "im_merge" in classes:
+            if "im_merge" not in classes:
                 return None  # keep it as-is
 
             classes = [x for x in classes if x != "im_merge"]
