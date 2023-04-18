@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pandoc-imagine"
+version = "0.3.0"
+authors = [
+  { name = "andros21", email = "andrea.ros21@murena.io" },
+  { name = "hertogp", email = "git.hertogp@gmail.com" },
+]
+description = "A filter to process codeblocks into images or ascii art"
+readme = "README.md"
+keywords = ["pandoc", "filter", "codeblock", "image", "ascii-art"]
+requires-python = ">=3.9"
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Text Processing :: Filters",
+  "Natural Language :: English",
+]
+dependencies = ["pandocfilters==1.5.0", "six==1.16.0"]
+
+[tool.setuptools]
+py-modules = ["pandoc_imagine", "pandoc_minted"]
+
+[project.urls]
+repository = "https://github.com/andros21/imagine"
+changelog = "https://github.com/andros21/imagine/blob/master/CHANGELOG.md"
+
+[project.scripts]
+pandoc-imagine = "pandoc_imagine:main"
+pandoc-minted = "pandoc_minted:main"
