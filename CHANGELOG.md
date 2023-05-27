@@ -1,3 +1,6 @@
+# 0.4.1 - andros21
+- fix `pandoc_imagine.py` latex generator
+
 # 0.4.0 - andros21
 - from legacy `setup.py` to `pyproject.toml`
 - miscellaneous changes (build, dependencies)
