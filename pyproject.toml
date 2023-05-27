@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pandoc-imagine"
-version = "0.3.0"
+version = "0.4.0"
 authors = [
   { name = "andros21", email = "andrea.ros21@murena.io" },
   { name = "hertogp", email = "git.hertogp@gmail.com" },

@@ -1,3 +1,7 @@
+# 0.4.0 - andros21
+- from legacy `setup.py` to `pyproject.toml`
+- miscellaneous changes (build, dependencies)
+
 # 0.3.0 - andros21
 - add `pandoc_minted.py` script to parse minted code blocks
   and generate correct tex to include
