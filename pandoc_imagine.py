@@ -459,7 +459,7 @@ class Handler(with_metaclass(HandlerMeta, object)):
             label = ""
 
             def latex(s):
-                pf.RawInline("latex", s)
+                return pf.RawInline("latex", s)
 
             if len(self.keyvals) > 0:
                 for i, el in enumerate(self.keyvals[0]):
