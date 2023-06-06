@@ -22,7 +22,7 @@ classifiers = [
   "Operating System :: OS Independent",
   "Topic :: Text Processing :: Filters",
 ]
-dependencies = ["pandocfilters==1.5.0", "six==1.16.0"]
+dependencies = ["pandocfilters==1.5.0"]
 
 [tool.setuptools]
 py-modules = ["pandoc_imagine", "pandoc_minted"]

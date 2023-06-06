@@ -18,7 +18,7 @@ Installation
 
 Dependencies
 
-    %% sudo -H pip install pandocfilters six
+    %% sudo -H pip install pandocfilters
 
     and one (or more) of the packages that provide above utilities.
 
@@ -171,8 +171,6 @@ Thanks for feedback:
   amietn, chdemko, heyrict, priiduonu, K4zuki, pbsds
 """
 
-from __future__ import print_function
-
 import os
 import stat
 import sys
@@ -181,9 +179,6 @@ from textwrap import wrap
 
 # -https://github.com/jgm/pandocfilters
 import pandocfilters as pf
-
-# non-standard libraries
-from six import with_metaclass
 
 # Author: Pieter den Hertog
 # Email: git.hertogp@gmail.com
@@ -261,7 +256,7 @@ class HandlerMeta(type):
             cls.workers[klass.lower()] = cls
 
 
-class Handler(with_metaclass(HandlerMeta, object)):
+class Handler(object, metaclass=HandlerMeta):
     "baseclass for image/ascii art generators"
     severity = "error warn note info debug".split()
     workers = {}  # dispatch map for Handler, filled by HandlerMeta
