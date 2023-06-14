@@ -1,31 +1,36 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools >= 45"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pandoc-imagine"
 version = "0.4.1"
-authors = [
-  { name = "andros21", email = "andrea.ros21@murena.io" },
-  { name = "hertogp", email = "git.hertogp@gmail.com" },
-]
-description = "A filter to process codeblocks into images or ascii art"
+authors = [{ name = "andros21", email = "andrea.ros21@murena.io" }]
+description = "A filter to process codeblocks into images"
 readme = "README.md"
 license = { file = "LICENSE" }
-keywords = ["pandoc", "filter", "codeblock", "image", "ascii-art"]
+keywords = [
+  "pandoc",
+  "filter",
+  "codeblock",
+  "image",
+  "minted",
+  "syntax-highlight",
+]
 requires-python = ">=3.9"
 classifiers = [
   "Environment :: Console",
-  "Intended Audience :: End Users/Desktop",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Topic :: Text Processing :: Filters",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
 ]
-dependencies = ["pandocfilters==1.5.0"]
-
-[tool.setuptools]
-py-modules = ["pandoc_imagine", "pandoc_minted"]
+dependencies = ["panflute==2.3.0"]
 
 [project.urls]
 repository = "https://github.com/andros21/imagine"
@@ -33,4 +38,6 @@ changelog = "https://github.com/andros21/imagine/blob/master/CHANGELOG.md"
 
 [project.scripts]
 pandoc-imagine = "pandoc_imagine:main"
-pandoc-minted = "pandoc_minted:main"
+
+[project.optional-dependencies]
+lint = ["black", "isort", "ruff < 0.0.277"]

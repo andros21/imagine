@@ -1,334 +1,150 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""\
-Imagine
-  A pandoc filter to turn fenced codeblocks into graphics or ascii art by
-  wrapping some external command line utilities, such as:
-
-    %(cmds)s
-
-
-Installation
-
-    %% sudo -H pip install pandoc-imagine
-
-    or simply save `pandoc_imagine.py` anywhere along python's sys.path
-
-
-Dependencies
-
-    %% sudo -H pip install pandocfilters
-
-    and one (or more) of the packages that provide above utilities.
-
-
-Pandoc usage
-
-    %% pandoc --filter pandoc-imagine document.md -o document.pdf
-
-
-Markdown usage
-
-    ```cmd
-    code
-    ```
-
-  Alternate, longer form:
-
-    ```{.cmd im_opt=".." ...}
-    code
-    ```
-
-  which will run `cmd` (if known) to proces the `code` into an image and
-  replaces the fenced code block with an Image in a paragraph of its own or any
-  ascii art in its own CodeBlock.
-
-  If the command fails, the original fenced code block is retained unchanged.
-  Usually, only errors are printed to stderr but you can get more info by
-  setting the `im_log` option (see below).
-
-  If the command succeeds but produces no image, a line reporting the missing
-  image is included in the output document.
-
-
-Imagine options
-
-  Imagine's behaviour can be influenced by setting these options:
-
-  - im_opt="" or any cli-options to pass in on the command line.
-    Some classes already provide some defaults (as required by the command).
-
-  - im_out="img", or ordered csv-list of keywords indicating what to produce:
-    - img     an image-link in a paragraph
-    - ocb     the original codeblock but without imagine's class or options
-    - fcb     an anonymous codeblock containing the original codeblock
-    - stdout  an anonymous codeblock containing captured stdout (if any)
-    - stderr  an anonymous codeblock containing captured stderr (if any)
-
-    Some workers ignore 'img' by necessity since they donot produce graphical
-    data that can be linked to, e.g. `figlet` or `protocol`, while others the
-    'stdout' will ignored because that's where they produce their graphical
-    data.
-
-  - im_prg=None, or a cli-cmd name to override class-to-command map.
-    Normally, the class on the code block maps directly to a command line
-    tool to use. For example,
-    ```gri
-    ..
-    ```
-    maps gri to `gri`, but that can be changed by `{.gri im_prg="gri2"} to use
-    `gri2` instead of `gri`.
-
-  - im_fmt="png", or another output format of your choosing depending on the
-    command line tool used.  Some tools donot derive their output image format
-    from an intended output file name extension, but instead require it to be
-    set in the tool's codeblock containing its instructions.  Be sure the code
-    in the codeblock matches `im_fmt` or pandoc may have trouble assembling the
-    final document.
-
-  - im_dir="pd", or antoher absolute or relative (to the working directory)
-    path in which input/output files are to be stored during processing.
-    Note that an "-images" is still tacked onto the end of the path though.
-
-  - im_log=0, which defaults to printing only errors caught during processing.
-    Set it to -1 to completely silence Imagine, or as high as 4 for debug level
-    output if somethings goes wrong and you need more information on what is
-    going on.
-
-  Option values are resolved in order of most to least specific:
-
-  1. {.klass im_xyz=".."}       codeblock specific
-  2. imagine.klass.im_xyz: ..   metadata, klass specific
-  3. imagine.im_xyz: ..         metadata, imagine specific
-  4. class variable             hardcoded default
-
-  Notes:
-  - filenames are based on a hash of the codeblock + its attributes
-  - uses subdir `{im_dir}-images` to store any input/output files
-  - there's no clean up of files stored there
-  - if an output filename exists, it is not regenerated but simply linked to.
-  - `packetdiag`'s underlying library seems to have some problems.
-
-  Some commands follow a slightly different pattern:
-  - 'img' directive is ignored by commands that only produce ascii
-  - ctioga2 defaults to pdf instead of png
-  - flydraw produces a gif, not png
-  - gle also creates a .gle subdir inside the images-dir
-  - gri produces a ps, which is `convert`ed to png
-  - imagine reads its code as help-topics, returns codeblocks with help-info
-  - plot reads its codeblock as the relative path to the file to process
-  - pyxplot will have `set terminal` & `set output` prepended to its `code`
-  - shebang runs its codeblock as a script with <fname>.{im_fmt} as its argument.
-    - use {.shebang im_out="stdout"} for text instead of an png
-
-
-Merge `Image`'s into a single `Para`.
-
-  Based on a feature request (https://github.com/hertogp/imagine/issues/16) by
-  pbsds (https://github.com/pbsds), `pandoc-imagine` has been extended to
-  better cooperate with pandoc-crossref
-  (https://github.com/lierdakil/pandoc-crossref#pandoc-crossref-filter-), whose
-  subfigure grids (https://lierdakil.github.io/pandoc-crossref/#subfigure-grid)
-  facility requires that consecutive image links be located inside a single
-  paragraph.
-
-  This means that 'Div's, when assigned the 'pandoc-imagine' specific class
-  `im_merge`, will have their block-level elements processed individually.  Any
-  consecutive `Image`-links are collected into a single `Para`, other elements
-  are included in the `Div` contents as-is.
-
-  See Examples/inline.md and Examples/inline.pdf.
-
-
-Security
-
-  Imagine just hands the fenced codeblocks to plotting tools to process or
-  simply runs them as system scripts, as-is.
-
-  Shebang's are inherently unsafe and most of the plotting tools implement
-  their own 'little' languages, which can create beautiful images, but can also
-  cause harm.
-
-  There is no way to check for 'side effects' in advance, so make sure to check
-  the fenced codeblocks before running them through the filter.
-
-
-Imagine class
-
-The imagine class puts documentation of topics at your fingertips, like so:
-
-    ```imagine
-    klass
-    ```
-
-  Use `imagine` as klass to get the module's docstring (ie this text) and/or
-  one or more of the commands you're interested in, each on a separate line.
-
-
-Thanks for feedback:
-
-  amietn, chdemko, heyrict, priiduonu, K4zuki, pbsds
-"""
-
+import atexit
+import hashlib
 import os
-import stat
+import shutil
 import sys
+import tempfile
 from subprocess import PIPE, CalledProcessError, Popen
-from textwrap import wrap
 
-# -https://github.com/jgm/pandocfilters
-import pandocfilters as pf
-
-# Author: Pieter den Hertog
-# Email: git.hertogp@gmail.com
-#
-# -- Candidates:
-# o grace (ie gracebat, the batchmode variant; indirect mode?)
-#   script files are pretty big.  Perhaps indirectly.  It supports a batch mode
-#   via `gracebat`, which symlinks to the real binary executable.
-#
-# o tizk, needs convert since eps wont go into pdflatex ..
-
-# Notes:
-# - using svg requires rsvg-convert which pandoc uses to convert the svg to
-#   png before including in pdf
-#   + sudo apt-get install librsvg2-bin
-#
-# Inline Images #16
-# - https://github.com/hertogp/imagine/issues/16
-# - See https://lierdakil.github.io/pandoc-crossref/#subfigure-grid
+import panflute as pf
 
 
-
-# -- helpers
 def to_str(s, enc="ascii"):
-    "return encoded byte stream for s. PY2->str, PY3->bytes"
+    """Return encoded byte stream."""
     err = "replace"
     if isinstance(s, str):
         return s
     if isinstance(s, bytes):
         return s.decode(enc, err)
     try:
-        # PY2 unicode object?
         return s.encode(enc, err)
     except AttributeError:
-        # s is not a string
         return to_str(str(s))
 
 
 def to_bytes(s, enc="ascii"):
-    "return decoded char sequence for s"
-    # in PY2 isinstance(str(), bytes) == True
+    """Return decoded char sequence."""
     err = "replace"
     if isinstance(s, bytes):
-        try:
-            return s.decode(enc, err).encode(enc, err)  # PY2
-        except AttributeError:
-            return s.encode(enc, err)  # PY3
+        return s.encode(enc, err)
 
     if isinstance(s, str):
-        try:
-            return s.encode(enc, err)  # PY3
-        except UnicodeDecodeError:
-            return s.decode(enc, err).encode(enc, err)  # PY2
+        return s.encode(enc, err)
 
     try:
-        # sys.getfilesystemencoding()
         return to_bytes(str(s), sys.getdefaultencoding())
     except UnicodeEncodeError:
         return s.encode(enc, err)
 
 
-# Notes:
-# - if walker does not return anything, the element is kept
-# - if walker returns a block element, it'll replace current element
-# - block element = {'c': <value>, 't': <block_type>}
+def get_filename4code(module, content, ext=None):
+    """
+    Generate filename based on content.
+    The function ensures that the (temporary) directory exists, so that the
+    file can be written.
+    By default, the directory won't be cleaned up,
+    so a filter can use the directory as a cache and
+    decide not to regenerate if there's no change.
+    In case the user preferres the files to be temporary files,
+    an environment variable `PANFLUTE_CLEANUP` can be set to
+    any non-empty value such as `1` to
+    make sure the directory is created in a temporary location and removed
+    after finishing the filter. In this case there's no caching and files
+    will be regenerated each time the filter is run.
+
+    _Credits: [jgm/pandocfilters](https://github.com/jgm/pandocfilters)_
+    """
+    if os.getenv("PANFLUTE_CLEANUP"):
+        imagedir = tempfile.mkdtemp(prefix=module)
+        atexit.register(lambda: shutil.rmtree(imagedir))
+    else:
+        imagedir = module + "-images"
+    fn = hashlib.sha1(content.encode(sys.getfilesystemencoding())).hexdigest()
+    try:
+        if not os.path.exists(imagedir):
+            os.makedirs(imagedir)
+            sys.stderr.write(f"Created directory {imagedir}\n")
+    except OSError:
+        sys.stderr.write(f"Could not create directory {imagedir}\n")
+    if ext:
+        fn += "." + ext
+    return os.path.join(imagedir, fn)
 
 
 class HandlerMeta(type):
-    "metaclass to register Handler subclasses (aka workers)"
+    """Metaclass to register Handler subclasses (aka workers)."""
 
     def __init__(cls, name, bases, dct):
-        "register worker classes by cmdmap keys"
+        """Register worker classes by cmdmap keys."""
         super(HandlerMeta, cls).__init__(name, bases, dct)
         for klass in dct.get("cmdmap", {}):
             cls.workers[klass.lower()] = cls
 
 
 class Handler(object, metaclass=HandlerMeta):
-    "baseclass for image/ascii art generators"
+    """Baseclass for image art generators."""
+
     severity = "error warn note info debug".split()
     workers = {}  # dispatch map for Handler, filled by HandlerMeta
     klass = None  # __call__ dispatches a worker & sets this
     meta = {}  # stores user prefs in doc's meta yaml block
     cmdmap = {}  # worker subclass overrides, klass->cli-program
-    # FIXME: output became im_out
-    output = "img"  # output an img by default, some workers should
-    #  override this with stdout (eg Boxes, Figlet..)
 
     # Imagine defaults for worker options
     im_dir = "pd"  # dir for images (absolute or relative to cwd)
     im_fmt = "png"  # default format for image creation
     im_log = 0  # log on notification level
     im_opt = ""  # options to pass in to cli-program
-    im_out = "img"  # what to output: csv-list img,fcb,stdout,stderr
+    im_out = "img"  # what to output: csv-list img,mcb,ocb
     im_prg = None  # cli program to use to create graphic output
 
     # im_out is an ordered csv-list of what to produce:
     # - 'img'    outputs a link to an image (if any was produced)
-    # - 'fcb'    outputs an anonymous codeblock showing the original codeblock
-    # - 'stdout' outputs an anonymous codeblock showing a capture of stdout
-    # - 'stderr' outputs an anonymous codeblock showing a capture of stderr
+    # - 'mcb'    the minted codeblock without imagine's class or options
+    # - 'ocb'    the original codeblock without imagine's class or options
 
-    def __call__(self, codec, fmt, meta):
-        "Return worker class or self (Handler keeps CodeBlock unaltered)"
-        # CodeBlock's value = [(Identity, [classes], [(key, val)]), code]
-        self.msg(4, "dispatch request for", codec[0])
+    def __call__(self, elem, doc):
+        """Return worker class or self (Handler keeps CodeBlock unaltered)."""
+        self.msg(4, "dispatch request for", elem)
 
         # get classes and keyvals from codeblock attributes
         try:
-            _, klasses, keyvals = codec[0]
+            klasses = elem.classes
         except Exception as e:
-            self.msg(0, "Fatal:  invalid codeblock passed in", codec)
+            self.msg(0, "Fatal: invalid codeblock passed in", elem)
             raise e
 
-        # try dispatching by class attribute
+        # dispatching by class attribute
         for klass in klasses:
-            worker = self.workers.get(klass.lower(), None)
-            if worker is not None:
-                worker.klass = klass.lower()
-                self.msg(4, "- dispatched by class to", worker)
-                return worker(codec, fmt, meta)
+            worker = self.workers.get(klass.lower(), MintCodeBlock)
+            worker.klass = klass.lower()
+            self.msg(4, "- dispatched by class to", worker)
+            return worker(elem, doc)
 
-        # try dispatching via 'cmd' named by 'im_prg=cmd' key-value-pair
-        if keyvals:  # pf.get_value barks if keyvals == []
-            prog, _ = pf.get_value(keyvals, "im_prg", "")
-            worker = self.workers.get(prog.lower(), None)
-            if worker is not None:
-                self.msg(4, codec[0], "dispatched by prog to", worker)
-                return worker(codec, fmt, meta)
-
-        self.msg(4, codec[0], "dispatched by default to", self)
-        return self
-
-    def __init__(self, codec, fmt, meta):
-        "init by decoding the CodeBlock-s value"
-        self.codec = codec  # save original codeblock for later
-        self.fmt = fmt  # some workers (flydraw) need access to this
+    def __init__(self, elem, doc):
+        """Init by decoding the CodeBlock-s value."""
+        self.elem = elem  # save original codeblock for later
+        self.fmt = getattr(doc, "format", None)
 
         self.stdout = ""  # catches stdout by self.cmd, if any
         self.stderr = ""  # catches stderr by self.cmd, if any
 
-        if codec is None:
+        if elem is None:
             return  # initial dispatch creation
 
         # Options from to codeblock, meta data or imagine defaults
-        cb = self.get_cb_opts(codec)  # codeblock attrs
-        kd = self.get_md_opts(meta).get(self.klass, {})  # metadata.klass
+        cb = self.get_cb_opts(elem)  # codeblock attrs
+        kd = self.get_md_opts(doc.metadata.content).get(
+            self.klass, {}
+        )  # metadata.klass
         md = self.md_opts  # metadata (toplevel)
         opts = [x for x in dir(self) if x.startswith("im_")]
         for opt in opts:
+            # remove imagine related key from keyvals
+            self.keyvals.pop(opt, None)
             val = cb.get(
                 opt,  # 1 codeblock.opt
                 kd.get(
@@ -340,27 +156,33 @@ class Handler(object, metaclass=HandlerMeta):
 
         # post-process options
         self.im_opt = self.im_opt.split()
-        self.im_out = self.im_out.lower().replace(",", " ").split()
+        self.im_out = set(self.im_out.lower().replace(",", " ").split())
         self.im_log = int(self.im_log)
-        self.im_fmt = pf.get_extension(fmt, self.im_fmt)
 
         if not self.im_prg:
             # if no im_prg was found, fallback to klass's cmdmap
             self.im_prg = self.cmdmap.get(self.klass, None)
 
-        if self.im_prg is None:
-            self.msg(0, self.klass, "not listed in", self.cmdmap)
-            raise Exception("no worker found for %s" % self.klass)
+        # not fail if 'im_prg' is empty, but convert the CodeBlock
+        # in a syntax highlighted CodeBlock using 'minted',
+        if self.im_prg is None and "img" in self.im_out:
+            self.msg(
+                1,
+                self.klass,
+                "not handled, by default substitute 'img' output type with 'mcb'",
+            )
+            self.im_out.remove("img")
+            self.im_out.add("mcb")
 
-        self.basename = pf.get_filename4code(self.im_dir, str(codec))
-        self.outfile = self.basename + ".%s" % self.im_fmt
-        self.inpfile = self.basename + ".%s" % self.klass  # _name.lower()
+        self.basename = get_filename4code(self.im_dir, str(elem))
+        self.outfile = f"{self.basename}.{self.im_fmt}"
+        self.inpfile = f"{self.basename}.{self.klass}"
 
         if not os.path.isfile(self.inpfile):
             self.write("w", self.code, self.inpfile)
 
     def get_md_opts(self, meta):
-        "pickup user preferences from meta block"
+        """Pickup user preferences from meta block."""
         dct = {}
         try:
             sep = "."
@@ -384,21 +206,24 @@ class Handler(object, metaclass=HandlerMeta):
         self.md_opts = dct
         return dct
 
-    def get_cb_opts(self, codec):
-        "pickup user preferences from code block"
+    def get_cb_opts(self, elem):
+        """Pickup user preferences from code block."""
         # also removes imagine class/attributes from code block, by
         # retaining only non-Imagine stuff in self.classes and self.keyvals
         dct = {}
         opts = [x for x in dir(self) if x.startswith("im_")]
 
-        (self.id_, self.classes, self.keyvals), self.code = codec
-        self.caption, self.typef, self.keyvals = pf.get_caption(self.keyvals)
+        self.id_ = elem.identifier
+        self.classes = elem.classes
+        self.keyvals = elem.attributes
+        self.code = elem.text
+        self.caption = pf.get_option(self.keyvals, "caption", default="")
 
-        # - remove all Imagine-related classes from codeblock attributes
+        # remove all Imagine-related classes from codeblock attributes
         self.classes = [k for k in self.classes if k not in self.workers]
 
         for opt in opts:
-            val, self.keyvals = pf.get_value(self.keyvals, opt, None)
+            val = pf.get_option(self.keyvals, opt, error_on_none=False)
             if val:
                 dct[opt] = val
 
@@ -407,17 +232,17 @@ class Handler(object, metaclass=HandlerMeta):
         return dct
 
     def read(self, mode, src):
-        "read a file with given mode or return empty string"
+        """Read a file with given mode or return empty string."""
         try:
             with open(src, mode) as f:
                 return f.read()
         except (OSError, IOError) as e:
-            self.msg(0, "fail: could not read %si (%s)" % (src, repr(e)))
+            self.msg(0, f"fail: could not read {src} ({repr(e)})")
             return ""
         return ""
 
     def write(self, mode, dta, dst):
-        "write a file, return success boolean indicator"
+        """Write a file, return success boolean indicator."""
         if not dta:
             self.msg(3, "skipped writing 0 bytes to", dst)
             return False
@@ -432,7 +257,7 @@ class Handler(object, metaclass=HandlerMeta):
         return True
 
     def msg(self, level, *a):
-        "possibly print a message to stderr"
+        """Possibly print a message to stderr."""
         if level > self.im_log:
             return
         level %= len(self.severity)
@@ -446,106 +271,90 @@ class Handler(object, metaclass=HandlerMeta):
         sys.stderr.flush()
 
     def url(self):
-        "return an image link for existing/new output image-file"
-        # pf.Image is an Inline element. Callers usually wrap it in a pf.Para
+        """Return an image link for existing/new output image-file."""
+        # 'pf.Image' is an Inline element. Callers usually wrap it in a 'pf.Figure'
         # When {im_fmt} is 'tex' and pandoc fmt is 'latex'
-        # return a pf.RawInline('latex') instead
+        # return a pf.RawInline('latex') instead, wrapped in 'pf.Figure' too
         if self.im_fmt == "tex" and self.fmt == "latex":
-            label = ""
-
-            def latex(s):
-                return pf.RawInline("latex", s)
-
-            if len(self.keyvals) > 0:
-                for i, el in enumerate(self.keyvals[0]):
-                    if el == "label":
-                        label = self.keyvals[0][i + 1]
-                        break
-            return latex(
-                "\\begin{figure} "
-                + "\\centering "
-                + "\\input{%s} " % self.outfile[:-4]
-                + (
-                    "\\caption{%s} " % self.caption[0]["c"]
-                    if len(self.caption) > 0
-                    else ""
-                )
-                + ("\\label{%s} " % label if label != "" else "")
-                + "\\end{figure}"
-            )
+            return pf.RawInline(f"\input{{{self.outfile[:-4]}}}", format="tex")
         else:
-            return pf.Image(
-                [self.id_, self.classes, self.keyvals],
-                self.caption,
-                [self.outfile, self.typef],
-            )
+            return pf.Image(url=self.outfile)
 
-    def anon_codeblock(self):
-        "reproduce the original CodeBlock inside an anonymous CodeBlock"
-        (id_, klasses, keyvals), code = self.codec
-        id_ = "#" + id_ if id_ else id_
-        klasses = " ".join(".%s" % c for c in klasses)
-        keyvals = " ".join('%s="%s"' % (k, v) for k, v in keyvals)
-        attr = "{%s}" % " ".join(a for a in [id_, klasses, keyvals] if a)
-        # prefer ```cmd over ```{.cmd}
-        attr = attr if attr.find(" ") > -1 else attr[2:-1]
-        codeblock = "```%s\n%s\n```" % (attr, code)
-        return pf.CodeBlock(["", [], []], codeblock)
+    def minted_codeblock(self):
+        """Syntax highlight original CodeBlock using minted."""
+        keyvals = self.keyvals
+        keyvals.pop("caption", None)
+        keyvals = ",".join(f"{k}={v}" for k, v in keyvals.items())
+        return pf.RawBlock(
+            f"""
+\\begin{{listing}}[!ht]
+\\begin{{minted}}[{keyvals}]{{{self.klass}}}
+{self.code}
+\\end{{minted}}
+\\caption{{{self.caption}}}
+\\label{{{self.id_ if len(self.im_out) == 1 else f"mcb:{self.id_}"}}}
+\\end{{listing}}
+            """,
+            format="tex",
+        )
 
     def result(self):
-        "return FCB, Para(url()) and/or CodeBlock(stdout) as ordered"
+        """Return Figure, minted CodeBlock or original CodeBlock as ordered."""
         rv = []
-        enc = sys.getdefaultencoding()  # result always unicode
         for output_elm in self.im_out:
             if output_elm == "img":
                 if os.path.isfile(self.outfile):
-                    rv.append(pf.Para([self.url()]))
+                    rv.append(
+                        pf.Figure(
+                            pf.Plain(self.url()),
+                            caption=pf.Caption(*pf.convert_text(self.caption)),
+                            identifier=self.id_
+                            if len(self.im_out) == 1
+                            else f"img:{self.id_}",
+                            classes=self.classes,
+                            attributes=self.keyvals,
+                        )
+                    )
                 else:
-                    msg = "?? missing %s" % self.outfile
+                    msg = f"?? missing {self.outfile}"
                     self.msg(1, msg)
-                    rv.append(pf.Para([pf.Str(msg)]))
+                    rv.append(pf.Para(pf.Str(msg)))
 
-            # feature inline
-            #
-            # elif output_elm == 'img:inline':
-            #     if os.path.isfile(self.outfile):
-            #         rv.append(self.url())
-            #     else:
-            #         msg = '?? missing %s' % self.outfile
-            #         self.msg(1, msg)
-            #         rv.append(pf.Str(msg))
-            #
-            # feature inline
-
-            elif output_elm == "fcb":
-                rv.append(self.anon_codeblock())
+            elif output_elm == "mcb":
+                if self.fmt == "latex":
+                    rv.append(self.minted_codeblock())
+                else:
+                    rv.append(
+                        pf.CodeBlock(
+                            text=self.code,
+                            identifier=self.id_
+                            if len(self.im_out) == 1
+                            else f"mcb:{self.id_}",
+                            classes=self.classes,
+                            attributes=self.keyvals,
+                        )
+                    )
 
             elif output_elm == "ocb":
-                attr = ["", self.classes, self.keyvals]
-                rv.append(pf.CodeBlock(attr, self.codec[1]))
-
-            elif output_elm == "stdout":
-                if self.stdout:
-                    attr = ["", self.classes, self.keyvals]
-                    rv.append(pf.CodeBlock(attr, to_str(self.stdout, enc)))
-                else:
-                    self.msg(1, "stdout requested, but saw nothing")
-
-            elif output_elm == "stderr":
-                if self.stderr:
-                    attr = ["", self.classes, self.keyvals]
-                    rv.append(pf.CodeBlock(attr, to_str(self.stderr, enc)))
-                else:
-                    self.msg(1, "stderr requested, but saw nothing")
+                rv.append(
+                    pf.CodeBlock(
+                        text=self.code,
+                        identifier=self.id_
+                        if len(self.im_out) == 1
+                        else f"ocb:{self.id_}",
+                        classes=self.classes,
+                        attributes=self.keyvals,
+                    )
+                )
 
         if not rv:
-            return None  # no results; None keeps original FCB
+            return None  # no results; None keeps original codeblock
         if len(rv) > 1:
             return rv  # multiple results
         return rv[0]  # just 1 block level element
 
     def cmd(self, *args, **kwargs):
-        "run, possibly forced, a cmd and return success indicator"
+        """Run, possibly forced, a cmd and return success indicator."""
         forced = kwargs.get("forced", False)  # no need to pop
         stdin = kwargs.get("stdin", None)
 
@@ -570,13 +379,13 @@ class Handler(object, metaclass=HandlerMeta):
             for line in self.stderr.splitlines():
                 self.msg(4, "stderr>", line)
 
-            self.msg(2, "stderr>", "saw {} bytes".format(len(self.stderr)))
+            self.msg(2, "stderr>", f"saw {len(self.stderr)} bytes")
 
             # STDOUT
             for line in self.stdout.splitlines():
                 self.msg(4, "stdout>", line)
 
-            self.msg(2, "stdout>", "saw {} bytes".format(len(self.stdout)))
+            self.msg(2, "stdout>", f"saw {len(self.stdout)} bytes")
 
             if os.path.isfile(self.outfile):
                 # Note: not every worker actually produces an output file
@@ -596,172 +405,19 @@ class Handler(object, metaclass=HandlerMeta):
             return False
 
     def image(self):
-        "return an Image url or None to keep CodeBlock"
-        # For cases where no handler could be associated with a fenced
-        # codeblock, Handler itself will be the 'worker' who returns None
-        # preserving the original codeblock as-is in the json AST.
-        # Real workers (subclassing Handler) must override this method
-        self.msg(2, "CodeBlock ignored, keeping as-is")
-        return None
+        """Abstract method that must be implemented for each worker/class."""
+        raise NotImplementedError("Please implement this method for a specific worker")
 
 
-class Asy(Handler):
+class MintCodeBlock(Handler):
     """
-    sudo-apt-get install asymptote
-
-    See http://asymptote.sourceforge.net/
+    Default worker when 'im_prg' is empty, so no class target.
+    That means the CodeBlock will be syntax highlighted with 'minted'.
     """
-
-    cmdmap = {"asy": "asy", "asymptote": "asy"}
-    im_fmt = "png"
 
     def image(self):
-        "asy -o <fname>.{im_fmt} {im_opt} <fname>.asy"
-        args = ["-o", self.outfile] + self.im_opt + [self.inpfile]
-        if self.cmd(self.im_prg, *args):
-            return self.result()
-
-
-class Boxes(Handler):
-    """
-    sudo apt-get install boxes
-    http://boxes.thomasjensen.com
-    """
-
-    cmdmap = {"boxes": "boxes"}
-    im_fmt = "boxed"
-    output = "stdout"  # i.e. default to stdout
-
-    def image(self):
-        "boxes {im_opt} <fname>.boxes"
-
-        # boxes produces text only, so silently ignore 'img'
-        self.im_out = [x for x in self.im_out if x not in ["img"]]
-        args = self.im_opt + [self.inpfile]
-        if self.cmd(self.im_prg, *args):
-            if self.stdout:
-                self.write("w", to_str(self.stdout), self.outfile)
-            else:
-                self.stdout = self.read("r", self.outfile)
-            return self.result()
-
-
-class BlockDiag(Handler):
-    """
-    sudo pip install blockdiag nwdiag actdiag seqdiag
-    http://blockdiag.com/
-    """
-
-    progs = "blockdiag seqdiag rackdiag nwdiag packetdiag actdiag".split()
-    cmdmap = dict(zip(progs, progs))
-
-    def image(self):
-        "{im_prg} {im_opt} -T {im_fmt} <fname>.{im_fmt} -o <fname>.{im_prg}"
-        args = self.im_opt + ["-T", self.im_fmt, self.inpfile, "-o", self.outfile]
-        if self.cmd(self.im_prg, *args):
-            return self.result()
-
-
-class Ctioga2(Handler):
-    """
-    sudo apt-get install ctioga2
-    http://ctioga2.sourceforge.net
-    """
-
-    cmdmap = {"ctioga2": "ctioga2"}
-    im_fmt = "pdf"
-
-    def image(self):
-        "ctioga2 {im_opt} -f <fname>.ctioga2"
-        args = self.im_opt + ["-f", self.inpfile]
-        if self.cmd(self.im_prg, *args):
-            return self.result()
-
-
-class Ditaa(Handler):
-    """
-    sudo apt-get install ditaa
-    http://ditaa.sourceforge.net
-    """
-
-    cmdmap = {"ditaa": "ditaa"}
-
-    def image(self):
-        "ditaa <fname>.ditaa <fname>.{im_fmt} {im_opt}"
-        args = [self.inpfile, self.outfile] + self.im_opt
-        if self.cmd(self.im_prg, *args):
-            return self.result()
-
-
-class Figlet(Handler):
-    """
-    sudo apt-get install figlet
-    http://www.figlet.org
-    """
-
-    # - saves code-text to <fname>.figlet
-    # - saves stdout to <fname>.figled
-    cmdmap = {"figlet": "figlet"}
-    im_fmt = "figled"
-
-    def image(self):
-        "figlet {im_opt} < code-text"
-        # silently ignore any request for an 'image'
-        self.im_out = [x for x in self.im_out if x not in ["img"]]
-
-        args = self.im_opt
-        if self.cmd(self.im_prg, stdin=self.code, *args):
-            if self.stdout:
-                # save figlet's stdout to outfile for next time around
-                self.write("w", to_str(self.stdout), self.outfile)
-            else:
-                self.stdout = self.read("r", self.outfile)
-            return self.result()
-
-
-class Flydraw(Handler):
-    """
-    sudo apt-get install flydraw
-    http://manpages.ubuntu.com/manpages/precise/man1/flydraw.1.html
-    notes:
-    - graphic data is printed to stdout
-    - so 'stdout' in im_out option is silently ignored
-    """
-
-    # - flydraw reads its commands from stdin & produces output on stdout
-    cmdmap = {"flydraw": "flydraw"}
-
-    def image(self):
-        "flydraw {im_opt} < code-text"
-        # override im_fmt/outfile since, despite the manual, it insists on gif
-        self.im_fmt = "gif"
-        self.outfile = self.basename + ".%s" % self.im_fmt
-        self.msg(4, "im_fmt", self.im_fmt)
-        self.msg(4, "im_opt", self.im_opt)
-        # remove stdout from im_out, it contains graphic output, not text
-        self.im_out = [x for x in self.im_out if x not in ["stdout"]]
-        args = self.im_opt
-        if self.cmd(self.im_prg, stdin=self.code, *args):
-            if self.stdout:
-                self.write("wb", self.stdout, self.outfile)
-            return self.result()
-
-
-class Gle(Handler):
-    """
-    sudo apt-get install gle-graphics
-    http://glx.sourceforge.net
-    """
-
-    cmdmap = {"gle": "gle"}
-
-    def image(self):
-        "gle {im_opt} -verbosity 0 -output <fname>.{im_fmt} <fname>.gle"
-        args = self.im_opt
-        args += ["-verbosity", "0", "-output", self.outfile, self.inpfile]
-        # gle leaves im_dir-images/.gle lying around ...
-        if self.cmd(self.im_prg, *args):
-            return self.result()
+        """No output file will be created. Simply reqrite original block."""
+        return self.result()
 
 
 class GnuPlot(Handler):
@@ -770,7 +426,6 @@ class GnuPlot(Handler):
     http://www.gnuplot.info
     notes:
     - graphic data is printed to stdout
-    - so 'stdout' in im_out option is silently ignored
     - exception, imagine adds the following lines to the top of the script
        set terminal {im_fmt}
        set output {outfile}
@@ -781,36 +436,18 @@ class GnuPlot(Handler):
 
     def image(self):
         "gnuplot {im_opt} <fname>.gnuplot > <fname>.{im_fmt}"
-        # stdout captures the graphic image
-        self.im_out = [x for x in self.im_out if x not in ["stdout"]]
-        args = self.im_opt + [self.inpfile]
-        if self.im_fmt == "tex":
-            self.code = "%s%s" % ("set output '%s'\n" % self.outfile, self.code)
-        self.write("w", self.code, self.inpfile)
-        if self.cmd(self.im_prg, *args):
-            if self.stdout:
-                self.write("wb", self.stdout, self.outfile)
-            return self.result()
-
-
-class Graph(Handler):
-    """
-    sudo apt-get install plotutils
-    https://www.gnu.org/software/plotutils
-    notes:
-    - graphic data is printed to stdout
-    - so 'stdout' in im_out option is silently ignored
-    """
-
-    cmdmap = {"graph": "graph"}
-
-    def image(self):
-        "graph -T png {im_opt} <fname>.graph"
-        # stdout is used to capture graphic image data
-        self.im_out = [x for x in self.im_out if x not in ["stdout"]]
-        args = ["-T", self.im_fmt] + self.im_opt + [self.inpfile]
-        if self.cmd(self.im_prg, *args):
-            self.write("wb", self.stdout, self.outfile)
+        if "img" in self.im_out:
+            # stdout captures the graphic image
+            args = self.im_opt + [self.inpfile]
+            code = self.code
+            if self.im_fmt == "tex":
+                code = f"set output '{self.outfile}'\n{self.code}"
+            self.write("w", code, self.inpfile)
+            if self.cmd(self.im_prg, *args):
+                if self.stdout:
+                    self.write("wb", self.stdout, self.outfile)
+                return self.result()
+        else:
             return self.result()
 
 
@@ -827,173 +464,13 @@ class Graphviz(Handler):
 
     def image(self):
         "{im_prg} {im_opt} -T{im_fmt} <fname>.{im_prg} <fname>.{im_fmt}"
-        args = self.im_opt + ["-T%s" % self.im_fmt, self.inpfile, "-o", self.outfile]
 
-        if self.cmd(self.im_prg, *args):
-            return self.result()
+        if "img" in self.im_out:
+            args = self.im_opt + [f"-T{self.im_fmt}", self.inpfile, "-o", self.outfile]
 
-
-class Gri(Handler):
-    """
-    sudo apt-get install gri imagemagick
-    http://gri.sourceforge.net
-    Notes
-    - insists on creating a <fname>.ps in current working directory
-    - requires `convert` from imagemagick
-    - ImageMagick's security policy might need massaging
-    """
-
-    # cannot convince gri to output intermediate ps in pd-images/..
-    # so we move it there.
-    # Repair ImageMagick's ability to manipulate ps files:
-    # nvim /etc/ImageMagick-6/policy.xml
-    #  <policy domain="coder" rights="read|write" pattern="PS" />
-    #  <policy domain="coder" rights="read|write" pattern="PS2" />
-    #  <policy domain="coder" rights="read|write" pattern="PS3" />
-    #  <policy domain="coder" rights="read|write" pattern="EPS" />
-    #  <policy domain="coder" rights="read|write" pattern="PDF" />
-    #  <policy domain="coder" rights="read|write" pattern="XPS" />
-
-    cmdmap = {"gri": "gri"}
-
-    def image(self):
-        "gri {im_opt} -c 0 -b <fname>.gri"
-        # -> <x>.ps -> <x>.{im_fmt} -> Para(Img(<x>.{im_fmt}))'
-        args = self.im_opt + ["-c", "0", "-b", self.inpfile]
-        if self.cmd(self.im_prg, *args):
-            # gri insists on producing a .ps in current working dir
-            dstfile = self.inpfile.replace(".gri", ".ps")
-            srcfile = os.path.split(dstfile)[-1]  # the temp ps in working dir
-            if os.path.isfile(srcfile):
-                self.msg(3, "moving", srcfile, dstfile)
-                os.rename(srcfile, dstfile)
-            if self.cmd("convert", dstfile, self.outfile):
+            if self.cmd(self.im_prg, *args):
                 return self.result()
-            else:
-                self.msg(2, "could not convert gri's ps to", self.im_fmt)
         else:
-            # relay gri's complaints on stdout to stderr.
-            for line in self.stdout.splitlines():
-                self.msg(1, line)
-
-
-class Imagine(Handler):
-    """
-    pip install pandoc-imagine
-    https://github.com/hertogp/imagine
-    """
-
-    cmdmap = {"imagine": "imagine"}
-
-    def image(self):
-        "returns documentation in a CodeBlock"
-        # CodeBlock value = [(Identity, [classes], [(key, val)]), code]
-        if not self.code:
-            return pf.CodeBlock(("", [], []), __doc__)
-        elif self.code == "classes":
-            classes = wrap(", ".join(sorted(Handler.workers.keys())), 78)
-            return pf.CodeBlock(("", [], []), "\n".join(classes))
-
-        doc = []
-        for name in self.code.splitlines():
-            name = name.lower()
-            worker = self.workers.get(name, None)
-            doc.append("Codeblock class: " + name)
-            if worker is None:
-                doc.append("No worker found for %s" % name)
-                continue
-            if worker.__doc__:
-                doc.append(worker.__doc__)
-                doc.append("    runs:")
-                doc.append("    > " + worker.image.__doc__)
-            else:
-                doc.append("No help available.")
-
-            doc.append("\n    class->cmd")
-            for k, v in worker.cmdmap.items():
-                doc.append("      {} -> {}".format(k, v))
-
-            # -- document class metadata options
-            klass_opts, glob_opts = [], []
-            for k, v in self.md_opts.items():
-                if k not in self.workers:
-                    glob_opts.append("    imagine.{}: {}".format(k, v))
-                else:  # elif k == name:
-                    for kk, vv in self.md_opts.get(name, {}).items():
-                        klass_opts.append("    imagine.{}.{}: {}".format(k, kk, vv))
-            if klass_opts or glob_opts:
-                doc.append("\nMetadata options")
-                # doc.append("    ---")
-                doc.extend(glob_opts + klass_opts)
-                # doc.append("    ...")
-
-            doc.append("\n")
-
-        return pf.CodeBlock(("", [], []), "\n".join(doc))
-
-
-class Mermaid(Handler):
-    """
-    sudo npm install mermaid.cli
-    https://github.com/mermaidjs/mermaid.cli
-    """
-
-    cmdmap = {"mermaid": "mmdc"}
-
-    def image(self):
-        "mmdc -i <fname>.mermaid -o <fname>.<fmt> {im_opt}"
-        args = ["-i", self.inpfile, "-o", self.outfile] + self.im_opt
-        if self.cmd(self.im_prg, *args):
-            return self.result()
-
-
-class MscGen(Handler):
-    """
-    sudo apt-get install mscgen
-    http://www.mcternan.me.uk/mscgen
-    """
-
-    cmdmap = {"mscgen": "mscgen"}
-
-    def image(self):
-        "mscgen -T {im_fmt} -o <fname>.{im_fmt} <fname>.mscgen"
-        args = self.im_opt
-        args += ["-T", self.im_fmt, "-o", self.outfile, self.inpfile]
-        if self.cmd(self.im_prg, *args):
-            return self.result()
-
-
-class Octave(Handler):
-    """
-    sudo apt-get install octave
-    https://www.gnu.org/software/octave
-    """
-
-    cmdmap = {"octave": "octave"}
-
-    def image(self):
-        "octage --no-gui -q {im_opt} <fname>.octave <fname>.{im_fmt}"
-        args = ["--no-gui", "-q"] + self.im_opt + [self.inpfile, self.outfile]
-        if self.cmd(self.im_prg, *args):
-            return self.result()
-
-
-class Pic2Plot(Handler):
-    """
-    sudo apt-get install plotutils
-    https://www.gnu.org/software/plotutils
-    notes:
-    - graphic data is printed to stdout
-    - so 'stdout' in im_out option is silently ignored
-    """
-
-    cmdmap = {"pic2plot": "pic2plot", "pic": "pic2plot"}
-
-    def image(self):
-        "pic2plot -T png {im_opt} <fname>.pic2plot"
-        args = ["-T", self.im_fmt] + self.im_opt + [self.inpfile]
-        if self.cmd(self.im_prg, *args):
-            self.write("wb", self.stdout, self.outfile)
             return self.result()
 
 
@@ -1007,117 +484,12 @@ class PlantUml(Handler):
 
     def image(self):
         "plantuml -t{im_fmt} <fname>.plantuml {im_opt}"
-        args = ["-t" + self.im_fmt, self.inpfile] + self.im_opt
-        if self.cmd(self.im_prg, *args):
-            return self.result()
 
-
-class Plot(Handler):
-    """
-    sudo apt-get install plotutils
-    https://www.gnu.org/software/plotutils
-    notes:
-    - graphic data is printed to stdout
-    - so 'stdout' in im_out option is silently ignored
-    """
-
-    # - code text is filename relative to source.md
-    # - write(stdout, <fname>.<fmt>)
-    cmdmap = {"plot": "plot"}
-
-    def image(self):
-        "plot -T {im_fmt} {im_opt} <code-text-as-filename>"
-        if not os.path.isfile(self.code):
-            self.msg(0, "fail: cannot read file %r" % self.code)
-            return
-        args = ["-T", self.im_fmt] + self.im_opt + [self.code]
-        if self.cmd(self.im_prg, *args):
-            self.write("wb", self.stdout, self.outfile)
-            return self.result()
-
-
-class Ploticus(Handler):
-    """
-    sudo apt-get install ploticus
-    http://ploticus.sourceforge.net/doc/welcome.html
-    """
-
-    cmdmap = {"ploticus": "ploticus"}
-
-    def image(self):
-        "ploticus -{im_fmt} -o <fname>.{im_fmt} {im_opt} <fname>.ploticus"
-        args = ["-" + self.im_fmt, "-o", self.outfile] + self.im_opt
-        args += [self.inpfile]
-        if self.cmd(self.im_prg, *args):
-            return self.result()
-
-
-class Protocol(Handler):
-    """
-    cd ~/installs/git-repos
-    git clone https://github.com/luismartingarcia/protocol.git
-    python setup install
-    https://github.com/luismartingarcia/protocol.git
-    """
-
-    cmdmap = {"protocol": "protocol"}
-    im_fmt = "protocold"
-    output = "stdout"  # i.e. default to stdout
-
-    def image(self):
-        "protocol {im_opt} code-text"
-        args = self.im_opt + [self.code]
-        # silently ignore any request for an 'image'
-        self.im_out = [x for x in self.im_out if x not in ["img"]]
-        if self.cmd(self.im_prg, *args):
-            if self.stdout:
-                self.write("w", to_str(self.stdout), self.outfile)
-            else:
-                self.stdout = self.read("r", self.outfile)
-            return self.result()
-
-
-class PyxPlot(Handler):
-    """
-    sudo apt-get install pyxplot
-    http://pyxplot.org.uk
-    Note:
-     - Imagine adds the following lines to the top of the script
-        set terminal {im_fmt}
-        set output {outfile}
-     - that means you cannot use set output in the pyxplot itself.
-       There seems no way to convince `set output` to take a variable to
-       indicate an output filename.  It'll take anything quite literally..
-    """
-
-    cmdmap = {"pyxplot": "pyxplot"}
-
-    def image(self):
-        "pyxplot {im_opt} <fname>.pyxplot"
-        args = self.im_opt + [self.inpfile]
-        self.code = "%s%s%s" % (
-            "set terminal %s\n" % self.im_fmt,
-            "set output %s\n" % self.outfile,
-            self.code,
-        )
-        self.write("w", self.code, self.inpfile)
-        if self.cmd(self.im_prg, *args):
-            return self.result()
-
-
-class SheBang(Handler):
-    """
-    http://www.google.com/search?q=shebang+line
-    """
-
-    # runs fenced code block as a hash-bang system script'
-    cmdmap = {"shebang": "shebang"}
-
-    def image(self):
-        "<fname>.shebang {im_opt} <fname>.{im_fmt}"
-        os.chmod(self.inpfile, stat.S_IEXEC | os.stat(self.inpfile).st_mode)
-        args = self.im_opt + [self.outfile]
-        if self.cmd(self.inpfile, *args):
+        if "img" in self.im_out:
+            args = ["-t" + self.im_fmt, self.inpfile] + self.im_opt
+            if self.cmd(self.im_prg, *args):
+                return self.result()
+        else:
             return self.result()
 
 
@@ -1143,95 +515,36 @@ class Matplotlib(Handler):
 
     def image(self):
         "<fname>.matplotlib {im_opt} <fname>.{im_fmt}"
-        # os.chmod(self.inpfile, stat.S_IEXEC | os.stat(self.inpfile).st_mode)
-        args = self.im_opt + [self.inpfile, self.outfile]
-        self.code = "%s\n\n%s\n\n%s\n" % (
-            (
-                "import sys\n"
-                + "import numpy as np\n"
-                + "import matplotlib.pyplot as plt"
-            ),
-            self.code,
-            "fig.savefig(sys.argv[-1], transparent=True)"
-            if self.im_fmt != "tex"
-            else "fig.savefig(sys.argv[-1], format='pgf', backend='pgf')",
-        )
-        self.write("w", self.code, self.inpfile)
-        if self.cmd(self.im_prg, *args):
+        if "img" in self.im_out:
+            args = self.im_opt + [self.inpfile, self.outfile]
+            code = f"""
+import sys
+import numpy as np
+import matplotlib.pyplot as plt
+
+{self.code}
+
+{
+"fig.savefig(sys.argv[-1], transparent=True)"
+if self.im_fmt != "tex" else "fig.savefig(sys.argv[-1], format='pgf', backend='pgf')"
+}
+            """
+            self.write("w", code, self.inpfile)
+            if self.cmd(self.im_prg, *args):
+                return self.result()
+        else:
             return self.result()
 
 
-# use sys.modules[__name__].__doc__ instead of __doc__ directly
-# to avoid pylint'rs complaints.
-sys.modules[__name__].__doc__ %= {
-    "cmds": "\n    ".join(wrap(", ".join(sorted(Handler.workers.keys()))))
-}
-
-
-# Inline-helper
-def mergeImages(rv, elms):
-    # ensure elms is/becomes a list
-    if type(elms) != list:
-        elms = [elms]
-    # ensure rv is a list as well
-    if type(rv) != list:
-        return elms
-    # if empty list, initialize first elm to empty Para
-    if len(rv) == 0:
-        rv.append(pf.Para([]))
-
-    # check rv[-1]'s contents is a list of 0 or all Inline Image's
-    try:
-        images = rv[-1]["c"]
-        if any(x["t"] != "Image" for x in images):
-            return elms
-    except Exception:
-        return elms
-
-    residue = []
-    for elm in elms:
-        try:
-            for img in elm["c"]:
-                if img["t"] == "Image":
-                    images.append(img)
-                else:
-                    residue.append(elm)
-        except Exception:
-            residue.append(elm)
-
-    return residue
-
-
-# for PyPI
 def main():
-    "main entry point"
+    "Main entry point."
 
-    def walker(key, value, fmt, meta):
-        "walk down the pandoc AST and invoke workers for CodeBlocks"
+    def walker(elem, doc):
+        "Walk down the pandoc AST and invoke workers for CodeBlocks."
+        if isinstance(elem, pf.CodeBlock):
+            return dispatch(elem, doc).image()
 
-        if key == "CodeBlock":
-            return dispatch(value, fmt, meta).image()
-
-        elif key == "Div":
-            # Process Div & try to merge its (subsequent) Image's
-            [[ident, classes, kvs], blocks] = value
-            if "im_merge" not in classes:
-                return None  # keep it as-is
-
-            classes = [x for x in classes if x != "im_merge"]
-
-            rv = []
-            for block in blocks:
-                if block["t"] != "CodeBlock":
-                    rv.append(block)
-                else:
-                    elm = dispatch(block["c"], fmt, meta).image()
-                    rest = mergeImages(rv, elm)
-                    rv.extend(rest)
-
-            return pf.Div([ident, classes, kvs], rv)
-
-    dispatch = Handler(None, None, None)
+    dispatch = Handler(None, None)
     pf.toJSONFilter(walker)
 
 
