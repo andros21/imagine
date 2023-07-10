@@ -504,7 +504,7 @@ class Matplotlib(Handler):
         import matplotlib.pyplot as plt
        to import standard library needed for a matplotlib plot
      - Imagine adds the following lines to the bottom of the script:
-        fig.savefig(sys.argv[-1], transparent=True)
+        fig.savefig(sys.argv[-1])
        to save result with trasparent background with graphic format
      - Imagine adds the following lines to the bottom of the script:
         fig.savefig(sys.argv[-1], format='pgf', backend='pgf')
@@ -525,7 +525,7 @@ import matplotlib.pyplot as plt
 {self.code}
 
 {
-"fig.savefig(sys.argv[-1], transparent=True)"
+"fig.savefig(sys.argv[-1])"
 if self.im_fmt != "tex" else "fig.savefig(sys.argv[-1], format='pgf', backend='pgf')"
 }
             """
