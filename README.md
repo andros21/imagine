@@ -69,5 +69,5 @@ codeblock (syntax highlight on!)
 #### [Matplotlib](https://matplotlib.org/)
 
 <figure>
-<img src="pd-images/3f3e7f6e5f43a271539cb51e533bff566dc99d45.png" />
+<img src="pd-images/d3edd7513770418f05b32336802f65db82e91485.png" />
 </figure>
