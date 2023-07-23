@@ -37,13 +37,11 @@ converts it in a
 [`minted`](https://www.overleaf.com/learn/latex/Code_Highlighting_with_minted)
 codeblock (syntax highlight on!)
 
-> **Warning**
->
+> [!IMPORTANT]\
 > Refer to [`minted`](https://ctan.org/pkg/minted) documentation for
 > supported languages
 
-> **Warning**
->
+> [!WARNING]\
 > Supported `pandoc` API versions 1.23
 
 ### Examples
