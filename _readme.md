@@ -19,6 +19,16 @@
 ```
 
 ## A pandoc filter to process codeblocks
+<a href="https://github.com/andros21/imagine/actions/workflows/ci.yml">
+<img src="https://img.shields.io/github/actions/workflow/status/andros21/imagine/ci.yml?branch=master&label=ci&logo=github" alt="ci">
+</a>
+<a href="https://github.com/andros21/imagine/actions/workflows/cd.yml">
+<img src="https://img.shields.io/github/actions/workflow/status/andros21/imagine/cd.yml?label=cd&logo=github" alt="cd">
+</a>
+<a href="https://github.com/andros21/imagine/tags">
+<img src="https://img.shields.io/github/v/tag/andros21/imagine?color=blue&label=tag&sort=semver&logo=github" alt="tag">
+</a>
+<br><br>
 
 Imagine is a pandoc filter that will turn codeblocks tagged
 with certain classes into images
