@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2023-07-29
+
+**Full Changelog**: [`d78e714...c40ed7d`](https://github.com/andros21/imagine/compare/d78e714694abee2ed847b9885c2df65596a91740...c40ed7da61aa516afcf8ed6756703db214975b9a)
+
+### Features
+
+- [`512d544`](https://github.com/andros21/imagine/commit/512d54413c0c9a717d170c8dc35080ce579ad4f3) [**breaking**] from `pandocfilters` to `panflute` ([#2](https://github.com/andros21/imagine/issues/2))
+
+### Miscellaneous Tasks
+
+- [`a8aa3a5`](https://github.com/andros21/imagine/commit/a8aa3a59b886142fdfee4d731be642654d5abd39) remove useless `six` dep
+- [`e7a7a2b`](https://github.com/andros21/imagine/commit/e7a7a2b4e9c2c1e7f3f0579f575fda6c09bdd636) add update changelog workflow
+- [`c40ed7d`](https://github.com/andros21/imagine/commit/c40ed7da61aa516afcf8ed6756703db214975b9a) check gh-actions updates weekly
+
 ## [0.4.1] - 2023-05-27
 
 **Full Changelog**: [`5e9e5d1...d78e714`](https://github.com/andros21/imagine/compare/5e9e5d10b6cf40b6b5ffed4ec9d44f53b35de149...d78e714694abee2ed847b9885c2df65596a91740)
