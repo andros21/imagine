@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.1] - 2023-07-29
+
+**Full Changelog**: [`c40ed7d...b0b50bd`](https://github.com/andros21/imagine/compare/c40ed7da61aa516afcf8ed6756703db214975b9a...b0b50bdb8f4d447400069299ee588f105ce0841d)
+
+### Build
+
+- [`b2faa08`](https://github.com/andros21/imagine/commit/b2faa087558435a5ae4c8e4dad3327edc67a8cad) render from template using imagine
+
+### Miscellaneous Tasks
+
+- [`81ea87f`](https://github.com/andros21/imagine/commit/81ea87f1490e7a1328f8814f282aa2972fadfbb8) add imagine 0.5.0 changes
+- [`204ab14`](https://github.com/andros21/imagine/commit/204ab14f1d7c698e1df435562198721e5bd9d69c) add ci workflow
+- [`5b01f6c`](https://github.com/andros21/imagine/commit/5b01f6cfb7d69d9ef3b22d384731d6b5c3de9278) add README template
+- [`b0b50bd`](https://github.com/andros21/imagine/commit/b0b50bdb8f4d447400069299ee588f105ce0841d) bump to 0.5.1
+
 ## [0.5.0] - 2023-07-29
 
 **Full Changelog**: [`d78e714...c40ed7d`](https://github.com/andros21/imagine/compare/d78e714694abee2ed847b9885c2df65596a91740...c40ed7da61aa516afcf8ed6756703db214975b9a)
