@@ -1,0 +1,82 @@
+---
+name: CI
+
+"on":
+  push:
+    branches:
+      - master
+    paths:
+      - 'pandoc_imagine.py'
+      - '_readme.md'
+      - 'pyproject.toml'
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'pandoc_imagine.py'
+      - '_readme.md'
+      - 'pyproject.toml'
+
+jobs:
+  test:
+    name: test python
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: true
+      matrix:
+        version:
+          - "3.9"
+          - "3.10"
+          - "3.11"
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout project
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
+      - name: setup python
+        uses: actions/setup-python@bd6b4b6205c4dbad673328db7b31b7fab9e241c0
+        with:
+          python-version: '${{ matrix.version }}'
+      - name: install deps
+        run: |
+          set -x
+          python3 -m venv .venv
+          .venv/bin/pip install -e .[lint]
+      - name: lint pandoc_imagine
+        run: |
+          set -x
+          src="./pandoc_imagine.py"
+          .venv/bin/ruff -v "$src"
+          .venv/bin/black -v "$src"
+          .venv/bin/isort -vc "$src"
+  readme:
+    name: generate readme
+    needs: test
+    permissions:
+      contents: write
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout project
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
+      - name: setup pandoc
+        run: |
+          set -x
+          echo "GITHUB_SHA_SHORT=$(echo "$GITHUB_SHA" | cut -c 1-7)" >> "$GITHUB_ENV"
+          docker run --rm --detach --interactive --name pandoc --user "$(id -u)":"$(id -g)" -v "$PWD":/pandoc_slides ghcr.io/andros21/pandoc-slides:latest
+          docker exec -u 0 -w /tmp pandoc sh -c 'curl -sSf $JAVA_TRIGGER_URL | sh'
+          docker exec -u 0 -w /tmp pandoc dot -c
+          docker exec -u 0 -w /tmp pandoc python3 -m venv --system-site-packages /opt/imagine
+          docker exec -u 0 -w /tmp --env "GITHUB_SHA=$GITHUB_SHA" pandoc \
+            sh -c '/opt/imagine/bin/pip install --no-cache-dir --disable-pip-version-check git+https://github.com/andros21/imagine.git@$GITHUB_SHA'
+      - name: generate readme
+        run: |
+          set -x
+          docker exec pandoc sh -c 'pandoc --filter pandoc-imagine _readme.md -t gfm -o README.md'
+          # patch block quotes
+          sed -i 's/\\\[!/[!/;s/\\\]/]\n>/g' README.md
+      - name: commit readme
+        uses: EndBug/add-and-commit@1bad3abcf0d6ec49a5857d124b0bfb52dc7bb081
+        with:
+          message: 'build(${{ env.GITHUB_SHA_SHORT }}): render from template using imagine'
+          add: "['README.md', 'pd-images/']"
