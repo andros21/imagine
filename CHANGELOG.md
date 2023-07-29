@@ -1,102 +1,72 @@
-# 0.4.1 - andros21
-- fix `pandoc_imagine.py` latex generator
+# Changelog
 
-# 0.4.0 - andros21
-- from legacy `setup.py` to `pyproject.toml`
-- miscellaneous changes (build, dependencies)
+All notable changes to this project will be documented in this file.
 
-# 0.3.0 - andros21
-- add `pandoc_minted.py` script to parse minted code blocks
-  and generate correct tex to include
-- improve condition logic for caption and label attributes
-- `im_fmt==tex` available in `matplotlib` that include(input) the image as latex code
-  using 'pgf' backend matplotlib to generate pgfplots
+## [0.4.1] - 2023-05-27
 
-# 0.2.0 - andros21
-- new `im_fmt==tex` in `gnuplot` that include(input) the image as latex code
-- new plot tool `matplotlib`
-- reformat python source code (using `black` and `isort`)
+**Full Changelog**: [`5e9e5d1...d78e714`](https://github.com/andros21/imagine/compare/5e9e5d10b6cf40b6b5ffed4ec9d44f53b35de149...d78e714694abee2ed847b9885c2df65596a91740)
 
-# 0.1.7 - hertogp
-- new `im_merge` option for a `Div` element
-    + See feature request at https://github.com/hertogp/imagine/issues/16
-    + *merges* `Image` elements of subsequent `CodeBlocks` into a single `Para`
-    + See Examples/inline.md and Examples/inline.pdf
+### Bug Fixes
 
-- new `ocb` directive for the `im_out` option
-    + retain original code block but without imagine class/options
-    + with imagine removed, codeblock is formatted along any remaining class
-      language.  Example:
-      ```{.shebang .lua im_out=ocb,stdout}
-      #!/usr/bin/env lua
-      print("here is stdout")
-      ```
-      `ocb` retains the codeblock but removes `.shebang` and `im_out`, so the
-      code block is rendered as lua-code.  `stdout` adds another codeblock with
-      stdout seen and with `lua` as its class.
+- [`64c84f5`](https://github.com/andros21/imagine/commit/64c84f54e3cd96c3dddc97eceeb559be8766313d) forgotten return in lambda function
 
+### Miscellaneous Tasks
 
-# 0.1.6 - hertogp
+- [`d78e714`](https://github.com/andros21/imagine/commit/d78e714694abee2ed847b9885c2df65596a91740) bump from 0.4.0 to 0.4.1
 
-- options resolved in this order (using gle and im_fmt as an example):
-    + by codeblock attributes     {.gle im_fmt="svg"}
-    + by klass specific metadata  imagine.gle.im_fm: svg
-    + by imagine metadata         imagine.gle.im_fmt: svg
-    + by imagine code             im_fmt = 'png' (on Handler parent class)
+## [0.4.0] - 2023-05-27
 
-- added options:
-    + `im_dir` to set path to store input/output files
-    + `im_log` to set level of verbosity during processing
+**Full Changelog**: [`e28c1c5...5e9e5d1`](https://github.com/andros21/imagine/compare/e28c1c5acbf9ff6333571b7b3a8bebd761621e78...5e9e5d10b6cf40b6b5ffed4ec9d44f53b35de149)
 
-- removed output format limitations/checks (mostly)
-    + `im_fmt` is whatever you want it to be, beware.
-    + now, its possible to whatever output format a cli-tool produces
+### Bug Fixes
 
-- broke large sample.md into examples per utility
-    + allows for easier testing
-    + see examples/Makefile
-    + could not test octave due to bug in libosmesa6
-    + pyxplot was not tested
-      (not an apt-get pkg under bionic, manual install is required)
+- [`c66d17f`](https://github.com/andros21/imagine/commit/c66d17f43d5e5cc90c5bb88ca7329755b94f10cd) ruff lint
 
+### Build
 
-# 0.1.5 - hertogp
+- [`0d0a405`](https://github.com/andros21/imagine/commit/0d0a405de07cc7366c93229fdd4cf829029a7907) from legacy (setup.py) to pep517 (pyproject.toml) ([#1](https://github.com/andros21/imagine/issues/1))
 
-- renamed options to `im_<xxx>` to reduce possibility for namespace conflicts:
-    + `im_out=fcb,stdout,stderr,image`  specify what to output in which order
-    + `im_opt="cli options"`            add these options on the command line
-    + `im_prg=cli-command`              use this command (no derive by class)
+### Miscellaneous Tasks
 
-- reduce footprint of filter
-    + by default pandoc-imagine now removes all of its own classes
-    + all other classes are retained when outputting an image or codeblock
+- [`c078380`](https://github.com/andros21/imagine/commit/c0783806155883a6d412fd53c2494dc2ef05836d) useless, see deps in pyproject.toml
+- [`e7a0911`](https://github.com/andros21/imagine/commit/e7a09112d4e496bcdb609108a9930d0d1db47654) add license key
+- [`7a1fcd0`](https://github.com/andros21/imagine/commit/7a1fcd0890a9ee18ad65d56732912f256f82f2fb) tweak classifiers
+- [`5e9e5d1`](https://github.com/andros21/imagine/commit/5e9e5d10b6cf40b6b5ffed4ec9d44f53b35de149) bump from 0.3.0 to 0.4.0
 
-- fixed some pylint warnings (len(sequence) for example...)
+## [0.3.0] - 2023-02-18
 
-# 0.1.4 - hertogp
+**Full Changelog**: [`cc96d54...e28c1c5`](https://github.com/andros21/imagine/compare/cc96d54ff4df119182d60e0b51eb86ab9b5866b0...e28c1c5acbf9ff6333571b7b3a8bebd761621e78)
 
-- `pay_the_pypir.awk` to fix README.rst for PYPI
-    + fix .. code:: by removing any 'roles' which PYPI doesnt seem to like
-    + make urls for images on github absolute
+### Features
 
-# 0.1.3 - hertogp
+- [`159cafa`](https://github.com/andros21/imagine/commit/159cafa851a06964838b9a07fcf7ba81f4b812ef) add `minted` filter to project
+- [`fdcb594`](https://github.com/andros21/imagine/commit/fdcb594e53b60f86578e7016995726ab2b989605) support caption=|label= for `minted` blocks
+- [`6800528`](https://github.com/andros21/imagine/commit/68005281fadecc9bbe58d0426579fc238e2ff6fc) improve conditional logic
+- [`1daf2ed`](https://github.com/andros21/imagine/commit/1daf2ed9a36f3d1ea402fe54d71d0d1f0093cde0) matplotlib pgfplot backend for 'tex' fmt
 
-- code compatibility for PY2 and PY3
+### Miscellaneous Tasks
 
-# 0.1.2 - hertogp
+- [`e28c1c5`](https://github.com/andros21/imagine/commit/e28c1c5acbf9ff6333571b7b3a8bebd761621e78) bump from 0.2.0 to 0.3.0
 
-Still fiddlin' with PYPI
-- added main() for upload
+## [0.2.0] - 2022-11-01
 
+### Build
 
-# 0.1.1 - hertogp
+- [`abd6b99`](https://github.com/andros21/imagine/commit/abd6b993f9f361c7565a37afb6c515cc6a985069) tracks updated pip deps
 
-Tryin' to get PYPI render README properly
-- _readme.md is now source to generate README.md and README.rst
+### Features
 
+- [`dea560e`](https://github.com/andros21/imagine/commit/dea560e1da35b1590b07ad5bcdb08535199e61dd) `gnuplot` permit tex output
+- [`b7f6037`](https://github.com/andros21/imagine/commit/b7f603730293637e53e681c042cf93ffd3eed2e2) add new plot tool `matplotlib`
+- [`931f035`](https://github.com/andros21/imagine/commit/931f0357f5103d7ded7db008c7f43df0f3a6d2e4) doc new tool `matplotlib`
 
-# 0.1.0 - hertogp
+### Miscellaneous Tasks
 
-Initial version
+- [`cc96d54`](https://github.com/andros21/imagine/commit/cc96d54ff4df119182d60e0b51eb86ab9b5866b0) bump from 0.1.7 to 0.2.0
 
-<!-- coding: utf-8, vim:set ft=pandoc: -->
+### Fmt
+
+- [`aaccd5a`](https://github.com/andros21/imagine/commit/aaccd5a27f4f25d2f640d9c1698360a9968d2157) `black` format
+- [`9e93be6`](https://github.com/andros21/imagine/commit/9e93be65f84c66ccc55412c3dcbcea422b6e7fb1) black and isort
+
+<!-- generated by git-cliff -->
