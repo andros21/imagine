@@ -4,31 +4,31 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pandoc-imagine"
-version = "0.4.1"
+version = "0.5.1"
 authors = [{ name = "andros21", email = "andrea.ros21@murena.io" }]
 description = "A filter to process codeblocks into images"
 readme = "README.md"
 license = { file = "LICENSE" }
 keywords = [
-  "pandoc",
-  "filter",
-  "codeblock",
-  "image",
-  "minted",
-  "syntax-highlight",
+   "pandoc",
+   "filter",
+   "codeblock",
+   "image",
+   "minted",
+   "syntax-highlight",
 ]
 requires-python = ">=3.9"
 classifiers = [
-  "Environment :: Console",
-  "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
-  "Operating System :: OS Independent",
-  "Topic :: Text Processing :: Filters",
-  "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
+   "Environment :: Console",
+   "Intended Audience :: Developers",
+   "License :: OSI Approved :: MIT License",
+   "Operating System :: OS Independent",
+   "Topic :: Text Processing :: Filters",
+   "Programming Language :: Python :: 3 :: Only",
+   "Programming Language :: Python :: 3",
+   "Programming Language :: Python :: 3.9",
+   "Programming Language :: Python :: 3.10",
+   "Programming Language :: Python :: 3.11",
 ]
 dependencies = ["panflute==2.3.0"]
 
