@@ -19,6 +19,7 @@
 ```
 
 ## A pandoc filter to process codeblocks
+
 <a href="https://github.com/andros21/imagine/actions/workflows/ci.yml">
 <img src="https://img.shields.io/github/actions/workflow/status/andros21/imagine/ci.yml?branch=master&label=ci&logo=github" alt="ci">
 </a>
@@ -59,7 +60,6 @@ codeblock (syntax highlight on!)
 #### [Gnuplot](http://www.gnuplot.info)
 
 ```{.gnuplot im_fmt="png" im_out="img"}
-set terminal png
 set dummy u,v
 set key bmargin center horizontal Right noreverse enhanced autotitles nobox
 set parametric
@@ -123,6 +123,7 @@ xmas-fifth-day:
    turtle-doves: two
 @endyaml
 ```
+
 #### [Matplotlib](https://matplotlib.org/)
 
 ```{.matplotlib im_fmt="png" im_out="img"}

@@ -275,8 +275,17 @@ class Handler(object, metaclass=HandlerMeta):
         # 'pf.Image' is an Inline element. Callers usually wrap it in a 'pf.Figure'
         # When {im_fmt} is 'tex' and pandoc fmt is 'latex'
         # return a pf.RawInline('latex') instead, wrapped in 'pf.Figure' too
-        if self.im_fmt == "tex" and self.fmt == "latex":
+        # TEX_PASS_OVERRIDE=1 to permit output image as \input latex
+        # useful when debugging and essential in tests
+        if self.im_fmt == "tex" and (
+            self.fmt == "latex" or os.getenv("TEX_PASS_OVERRIDE", False)
+        ):
             return pf.RawInline(f"\input{{{self.outfile[:-4]}}}", format="tex")
+        if self.im_fmt == "tex" and self.fmt != "latex":
+            sys.stderr.write(
+                "Could not render tex image when output format is not latex\n"
+            )
+            sys.exit(1)
         else:
             return pf.Image(url=self.outfile)
 
@@ -321,7 +330,9 @@ class Handler(object, metaclass=HandlerMeta):
                     rv.append(pf.Para(pf.Str(msg)))
 
             elif output_elm == "mcb":
-                if self.fmt == "latex":
+                # MCB_PASS_OVERRIDE=1 to force creation of minted block
+                # useful when debugging and essential in tests
+                if self.fmt == "latex" or os.getenv("MCB_PASS_OVERRIDE", False):
                     rv.append(self.minted_codeblock())
                 else:
                     rv.append(
@@ -425,27 +436,24 @@ class GnuPlot(Handler):
     sudo apt-get install gnuplot
     http://www.gnuplot.info
     notes:
-    - graphic data is printed to stdout
-    - exception, imagine adds the following lines to the top of the script
+    - Imagine adds the following lines to the top of the script
        set terminal {im_fmt}
        set output {outfile}
-      only when {im_fmt} == 'tex'
+      when `self.im_fmt == 'tex'` terminal is omitted
     """
 
     cmdmap = {"gnuplot": "gnuplot"}
 
     def image(self):
-        "gnuplot {im_opt} <fname>.gnuplot > <fname>.{im_fmt}"
+        "gnuplot {im_opt} <fname>.gnuplot"
         if "img" in self.im_out:
             # stdout captures the graphic image
             args = self.im_opt + [self.inpfile]
-            code = self.code
-            if self.im_fmt == "tex":
-                code = f"set output '{self.outfile}'\n{self.code}"
+            code = f"set output '{self.outfile}'\n{self.code}"
+            if self.im_fmt != "tex":
+                code = f"set terminal {self.im_fmt}\n{code}"
             self.write("w", code, self.inpfile)
             if self.cmd(self.im_prg, *args):
-                if self.stdout:
-                    self.write("wb", self.stdout, self.outfile)
                 return self.result()
         else:
             return self.result()
