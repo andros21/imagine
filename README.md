@@ -58,7 +58,7 @@ codeblock (syntax highlight on!)
 #### [Gnuplot](http://www.gnuplot.info)
 
 <figure>
-<img src="pd-images/bbc8295fb9663119c882a7cae7358f2b1f863d61.png" />
+<img src="pd-images/976d41ce35f0d61505511ecf3c454b1f75fe8bf7.png" />
 </figure>
 
 #### [Graphviz](https://graphviz.org/)
