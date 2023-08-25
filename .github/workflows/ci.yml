@@ -9,6 +9,7 @@ name: CI
       - 'pandoc_imagine.py'
       - '_readme.md'
       - 'pyproject.toml'
+      - 'tests/*'
   pull_request:
     branches:
       - master
@@ -16,6 +17,7 @@ name: CI
       - 'pandoc_imagine.py'
       - '_readme.md'
       - 'pyproject.toml'
+      - 'tests/*'
 
 jobs:
   test:
@@ -37,11 +39,26 @@ jobs:
         uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1
         with:
           python-version: '${{ matrix.version }}'
-      - name: install deps
+      - name: install python deps
         run: |
           set -x
           python3 -m venv .venv
           .venv/bin/pip install -e .[lint]
+      - name: install opa
+        uses: open-policy-agent/setup-opa@9501844990f7dcfd09b17a8d97c794d294620f37
+      - name: install just
+        uses: taiki-e/install-action@c9ba9d12d07c1ddcffa40b34f54a93e84ff95402
+        with:
+          tool: just
+          checksum: true
+      - name: install pandoc
+        run: |
+          set -x
+          latest_uri="$(curl -sL https://api.github.com/repos/jgm/pandoc/releases/latest | jq -r ".assets[] | select(.name | test(\"amd64.tar.gz\$\")) | .browser_download_url")"
+          curl -JSOL "$latest_uri"
+          mkdir -p pandoc
+          tar xvzf "$(basename "$latest_uri")" --strip-components 1 -C pandoc
+          sudo install pandoc/bin/pandoc /usr/local/bin
       - name: lint pandoc_imagine
         run: |
           set -x
@@ -49,6 +66,13 @@ jobs:
           .venv/bin/ruff -v "$src"
           .venv/bin/black -v "$src"
           .venv/bin/isort -vc "$src"
+      - name: test pandoc_imagine
+        run: |
+          just -d tests/ -f tests/justfile data
+          just -d tests/ -f tests/justfile input
+          just -d tests/ -f tests/justfile test
+        env:
+          PANDOC: /usr/local/bin/pandoc
   readme:
     name: generate readme
     needs: test
