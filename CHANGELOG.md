@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.2] - 2023-09-01
+
+**Full Changelog**: [`b0b50bd...d299486`](https://github.com/andros21/imagine/compare/b0b50bdb8f4d447400069299ee588f105ce0841d...d299486d029fd2c0ef6842dabe22d610d5c45982)
+
+### Build
+
+- [`388ba25`](https://github.com/andros21/imagine/commit/388ba2509e6b490811ecc7dfe8f481eb74ccd3ae) render from template using imagine
+- [`7553654`](https://github.com/andros21/imagine/commit/75536546667f3bed12738dd1f39a5debb91369cc) render from template using imagine
+
+### Features
+
+- [`145fb2b`](https://github.com/andros21/imagine/commit/145fb2b88f0a7e1af4e973099507a7ed6f62fa6a) change `gnuplot` class logic
+
+### Miscellaneous Tasks
+
+- [`5ae0107`](https://github.com/andros21/imagine/commit/5ae010754f4799f69d3775a2a0a697135bdc4565) add imagine 0.5.1 changes
+- [`d17ab73`](https://github.com/andros21/imagine/commit/d17ab73dcae10b489e26756ca23754fad97665d0) prettify with badges
+- [`84cdccc`](https://github.com/andros21/imagine/commit/84cdccc699122f8df88cad69849a3cd5e7e24c0c) bump actions/setup-python from 4.6.1 to 4.7.0 ([#4](https://github.com/andros21/imagine/issues/4))
+- [`28e18bf`](https://github.com/andros21/imagine/commit/28e18bfb1caaf5a84663d0bb8fd6844b019d9947) update ruff requirement from <0.0.277 to <0.0.282 ([#5](https://github.com/andros21/imagine/issues/5))
+- [`0a7cead`](https://github.com/andros21/imagine/commit/0a7ceadc169c1b8325b6aaaa9ca3618994da6dfe) remove old bin files
+- [`26d5264`](https://github.com/andros21/imagine/commit/26d52640093479c066ee615a5b92679f87640517) bump actions/checkout from 3.5.3 to 3.6.0 ([#7](https://github.com/andros21/imagine/issues/7))
+- [`d299486`](https://github.com/andros21/imagine/commit/d299486d029fd2c0ef6842dabe22d610d5c45982) bump to 0.5.2
+
+### Testing
+
+- [`1ce3eb9`](https://github.com/andros21/imagine/commit/1ce3eb9ce7661255e77207341f4583e65662abc0) add initial test setup ([#6](https://github.com/andros21/imagine/issues/6))
+
 ## [0.5.1] - 2023-07-29
 
 **Full Changelog**: [`c40ed7d...b0b50bd`](https://github.com/andros21/imagine/compare/c40ed7da61aa516afcf8ed6756703db214975b9a...b0b50bdb8f4d447400069299ee588f105ce0841d)
