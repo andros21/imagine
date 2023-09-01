@@ -1,0 +1,26 @@
+{
+   "tests": [
+      {"class": "gnuplot", "im_out": "img", "im_fmt": "png"},
+      {"class": "gnuplot", "im_out": "img", "im_fmt": "tex"},
+      {"class": "gnuplot", "im_out": "img", "im_fmt": "png", "caption": "Interlocking Tori"},
+      {"class": "gnuplot", "im_out": "img", "im_fmt": "tex", "caption": "Interlocking Tori"},
+      {"class": "graphviz", "im_out": "img", "im_fmt": "png"},
+      {"class": "graphviz", "im_out": "img", "im_fmt": "eps"},
+      {"class": "graphviz", "im_out": "img", "im_fmt": "eps", "label": "fig:linux"},
+      {"class": "graphviz", "im_out": "ocb"},
+      {"class": "plantuml", "im_out": "img", "im_fmt": "png"},
+      {"class": "plantuml", "im_out": "img", "im_fmt": "eps"},
+      {"class": "plantuml", "im_out": "img", "im_fmt": "png", "caption": "Yaml Table", "label": "fig:yaml"},
+      {"class": "plantuml", "im_out": "ocb"},
+      {"class": "plantuml", "im_out": "ocb", "label": "lst:yaml"},
+      {"class": "matplotlib", "im_out": "img", "im_fmt": "svg"},
+      {"class": "matplotlib", "im_out": "img", "im_fmt": "tex"},
+      {"class": "matplotlib", "im_out": "ocb"},
+      {"class": "matplotlib", "im_out": "mcb", "minted_flags": ""},
+      {"class": "matplotlib", "im_out": "mcb", "minted_flags": "xleftmargin=20pt,linenos"},
+      {"class": "bash", "im_out": "mcb", "minted_flags": ""},
+      {"class": "bash", "im_out": "mcb", "minted_flags": "", "caption": "A Bash Script", "label": "lst:bash"},
+      {"class": "bash", "im_out": "ocb"},
+      {"class": "bash", "im_out": "ocb", "caption": "A Bash Script"}
+   ]
+}

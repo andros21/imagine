@@ -1,0 +1,79 @@
+#!/usr/bin/env -S just --justfile
+# ===============================
+# run from project dir as
+# `just -d tests/ -f tests/justfile $target`
+#
+# requirements:
+#  * jqlang/jq
+#  * jgm/pandoc 3.x
+#  * andros21/imagine
+#  * open-policy-agent/opa
+
+CE := env_var_or_default('CE', `which docker 2>/dev/null || which podman 2>/dev/null || echo docker`)
+OPA := env_var_or_default('OPA', `which opa 2>/dev/null || echo ../.venv/bin/opa`)
+OCI := env_var_or_default('OCI', 'ghcr.io/andros21/pandoc-slides:latest')
+PANDOC := env_var_or_default('PANDOC', CE + ' ' + EXEC + ' pandoc')
+EXEC := 'exec -it --workdir /tests pandoc'
+IMAGINE := '../.venv/bin/pandoc-imagine'
+OUT := '/tmp/imagine'
+
+default: test
+
+test:
+    echo "[INFO] Test data/input against policy"
+    {{OPA}} check policy.rego
+    for test in `seq 0 $(jq -r '.tests | length - 1' tests.json)`; do \
+       class=`jq -r ".tests[$test].class" tests.json`; \
+       printf 'TEST: %02d; CLASS: %s\nPASS: ' "$test" "$class"; \
+       jq -r ".tests[$test]" tests.json > test.json; \
+       {{OPA}} eval --fail --format pretty --input "input/$test-$class.json" --data policy.rego --data "data/$test-$class.json" --data test.json 'data.test.pass' | jq -e 'if .pass then .pass else .,.pass end' || exit 1; \
+       printf '\n'; \
+    done
+    rm -fr test.json
+
+input:
+    pandoc --version
+    echo "[INFO] Generate test input"
+    mkdir -p input/
+    for test in `seq 0 $(jq -r '.tests | length - 1' tests.json)`; do \
+       class=`jq -r ".tests[$test].class" tests.json`; \
+       printf 'TEST: %02d; CLASS: %s\n' "$test" "$class"; \
+       cat "data/$test-$class.json" | {{IMAGINE}} >/dev/null 2>&1; \
+       ext=`jq -r ".tests[$test].im_fmt" tests.json`; \
+       for sha in `find pd-images/ -name "*.$class" -execdir basename -s ".$class" {} +`; do \
+           touch "pd-images/$sha.$ext"; \
+       done; \
+       cat "data/$test-$class.json" | MCB_PASS_OVERRIDE=1 TEX_PASS_OVERRIDE=1 {{IMAGINE}} | sed 's/pandoc-api-version/pandoc_api_version/' > "input/$test-$class.json"; \
+    done
+
+_pandoc:
+    echo "[INFO] Bootstrap pandoc"
+    mkdir -m 777 -p {{OUT}}/md
+    mkdir -m 777 -p {{OUT}}/json
+    {{PANDOC}} --version 2>/dev/null || {{CE}} run --detach --interactive --name pandoc -v $PWD:/tests:Z -v {{OUT}}:{{OUT}}:Z {{OCI}} || true
+
+data: _pandoc
+    echo "[INFO] Generate test data"
+    mkdir -p "$PWD/data"
+    for test in `seq 0 $(jq -r '.tests | length - 1' tests.json)`; do \
+       class=`jq -r ".tests[$test].class" tests.json`; \
+       printf 'TEST: %02d; CLASS: %s\n' "$test" "$class"; \
+       jq -r ".tests[$test]" tests.json > {{OUT}}/meta.json; \
+       {{PANDOC}} --metadata-file {{OUT}}/meta.json --template "tmpl/$class.md" -o "{{OUT}}/md/$test-$class.md" "tmpl/$class.md"; \
+       {{PANDOC}} --from markdown --to json -o "{{OUT}}/json/$test-$class.json" "{{OUT}}/md/$test-$class.md"; \
+    done
+    cp -fr {{OUT}}/json/*.json "$PWD/data"
+    {{CE}} stop pandoc 2>/dev/null || true
+    {{CE}} rm pandoc 2>/dev/null || true
+    rm -fr {{OUT}}
+
+clean:
+   rm -fr {{OUT}}
+   rm -fr data
+   rm -fr test.json
+   rm -fr input
+   rm -fr pd-images
+
+_clean:
+    {{CE}} stop pandoc 2>/dev/null || true
+    {{CE}} rm pandoc 2>/dev/null || true
