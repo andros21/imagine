@@ -47,7 +47,7 @@ jobs:
       - name: install opa
         uses: open-policy-agent/setup-opa@9501844990f7dcfd09b17a8d97c794d294620f37
       - name: install just
-        uses: taiki-e/install-action@7dcb31b8033f96afe112f0df83dcb01f9969d23b
+        uses: taiki-e/install-action@e17a4e247d4a36441181d7758c499d97e1e006bd
         with:
           tool: just
           checksum: true
