@@ -45,7 +45,7 @@ jobs:
           python3 -m venv .venv
           .venv/bin/pip install -e .[lint]
       - name: install opa
-        uses: open-policy-agent/setup-opa@9501844990f7dcfd09b17a8d97c794d294620f37
+        uses: open-policy-agent/setup-opa@34a30e8a924d1b03ce2cf7abe97250bbb1f332b5
       - name: install just
         uses: taiki-e/install-action@0dffe805566eb5f21aa682f9a43f6fbac7282dbe
         with:
