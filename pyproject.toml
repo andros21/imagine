@@ -40,4 +40,7 @@ changelog = "https://github.com/andros21/imagine/blob/master/CHANGELOG.md"
 pandoc-imagine = "pandoc_imagine:main"
 
 [project.optional-dependencies]
-lint = ["black", "isort", "ruff < 0.3.1"]
+dev = ["ruff < 0.3.1"]
+
+[tool.ruff]
+lint.extend-select = ["I"]
