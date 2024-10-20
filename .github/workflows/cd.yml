@@ -23,7 +23,7 @@ jobs:
         run: |
           echo "TAG=${GITHUB_REF:10}" >> "$GITHUB_ENV"
       - name: refresh changelog
-        uses: orhun/git-cliff-action@14bb67385aaac969efa2f146d137a42bb3b0aa87
+        uses: orhun/git-cliff-action@d3e272c587198684dcdd13f328b4a84d396c8a70
         with:
           config: cliff.toml
           args: --verbose --tag ${{ env.TAG }}
