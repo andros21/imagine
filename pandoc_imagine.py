@@ -533,9 +533,10 @@ import matplotlib.pyplot as plt
 {self.code}
 
 {
-"fig.savefig(sys.argv[-1])"
-if self.im_fmt != "tex" else "fig.savefig(sys.argv[-1], format='pgf', backend='pgf')"
-}
+                "fig.savefig(sys.argv[-1])"
+                if self.im_fmt != "tex"
+                else "fig.savefig(sys.argv[-1], format='pgf', backend='pgf')"
+            }
             """
             self.write("w", code, self.inpfile)
             if self.cmd(self.im_prg, *args):
